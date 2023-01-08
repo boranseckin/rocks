@@ -119,6 +119,35 @@ impl Scanner {
         self.add_token(Type::NUMBER, Some(Literal::Float(value)));
     }
 
+    fn identifier(&mut self) {
+        while self.peek().is_alphanumeric() {
+            self.advance();
+        }
+
+        let value = self.source.substring(self.start, self.current);
+        let token_type = match value {
+            "and"    => Type::AND,
+            "class"  => Type::CLASS,
+            "else"   => Type::ELSE,
+            "false"  => Type::FALSE,
+            "for"    => Type::FOR,
+            "fun"    => Type::FUN,
+            "if"     => Type::IF,
+            "nil"    => Type::NIL,
+            "or"     => Type::OR,
+            "print"  => Type::PRINT,
+            "return" => Type::RETURN,
+            "super"  => Type::SUPER,
+            "this"   => Type::THIS,
+            "true"   => Type::TRUE,
+            "var"    => Type::VAR,
+            "while"  => Type::WHILE,
+            _        => Type::IDENTIFIER,
+        };
+
+        self.add_token(token_type, None);
+    }
+
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
@@ -174,9 +203,7 @@ impl Scanner {
             },
 
             // Ignore whitespace
-            ' ' => {},
-            '\r' => {},
-            '\t' => {},
+            ' ' | '\r' | '\t' => {},
 
             // Update line counter
             '\n' => self.line += 1,
@@ -188,6 +215,10 @@ impl Scanner {
                 // Numbers
                 if c.is_ascii_digit() {
                     self.number();
+                // Identifiers
+                } else if c.is_alphabetic() || c == '_' {
+                    self.identifier();
+                // Unknown
                 } else {
                     error(self.line, "Unexpected character."); 
                 }
