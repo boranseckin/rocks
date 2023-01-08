@@ -1,7 +1,7 @@
 use substring::Substring;
 
 use crate::token::{Token, Type, Literal};
-use crate::error;
+use crate::report;
 
 pub struct Scanner {
     source: String,
@@ -85,6 +85,8 @@ impl Scanner {
     }
 
     fn string(&mut self) {
+        let start = (self.line, self.start);
+
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -94,7 +96,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            error(self.line, "Unterminated string");
+            report(start.0, Some(start.1), "Unterminated string");
         }
 
         self.advance();
@@ -220,7 +222,11 @@ impl Scanner {
                     self.identifier();
                 // Unknown
                 } else {
-                    error(self.line, "Unexpected character."); 
+                    report(
+                        self.line,
+                        Some(self.current),
+                        format!("Unexpected character {}.", c).as_str()
+                    ); 
                 }
             },
         }

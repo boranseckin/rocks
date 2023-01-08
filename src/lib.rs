@@ -1,14 +1,22 @@
-use std::{fs, io};
+use std::{fs, io, process};
 
 pub mod token;
 
 mod scanner;
 use scanner::Scanner;
 
+static mut HAD_ERROR: bool = false;
+
 pub fn run_file(path: String) {
     let contents = fs::read_to_string(path)
         .expect("Should have been able to read the file");
     run(contents);
+
+    unsafe {
+        if HAD_ERROR {
+            process::exit(65);
+        }
+    }
 }
 
 pub fn run_prompt() {
@@ -17,6 +25,10 @@ pub fn run_prompt() {
         io::stdin().read_line(&mut input).expect("acceptable expression");
 
         run(input);
+
+        unsafe {
+            HAD_ERROR = false;
+        }
     }
 }
 
@@ -30,11 +42,18 @@ fn run(source: String) {
 }
 
 pub fn error(line: usize, message: &str) {
-    // TODO: add had_error
-    report(line, "", message);
+    report(line, None, message);
 }
 
-fn report(line: usize, location: &str, message: &str) {
-    println!("[line {line}] Error{location}: {message}");
+fn report(line: usize, location: Option<usize>, message: &str) {
+    if let Some(location) = location {
+        println!("[{line}:{location}] Error: {message}");
+    } else {
+        println!("[{line}] Error: {message}");
+    }
+
+    unsafe {
+        HAD_ERROR = true;
+    }
 }
 
