@@ -2,7 +2,7 @@ use std::fmt;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Type {
   // Single-character tokens.
   LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -25,13 +25,13 @@ pub enum Type {
 }
 
 #[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Literal {
     String(String),
     Float(f32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     r#type: Type,
     lexeme: String,

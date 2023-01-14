@@ -35,37 +35,36 @@ impl Scanner {
     fn advance(&mut self) -> char {
         let temp = self.current;
         self.current += 1;
-        self.source.chars().nth(temp).expect("acceptable character")
+
+        match self.source.chars().nth(temp) {
+            Some(char) => char,
+            None => panic!("tried to advance past end of the file."),
+        }
     }
 
     fn peek(&self) -> char {
-        if self.is_at_end() {
-            return '\0';
+        match self.source.chars().nth(self.current) {
+            Some(char) => char,
+            None => panic!("tried to peek past end of the file."),
         }
-
-        self.source.chars().nth(self.current).expect("acceptable character")
     }
 
     fn peek_next(&self) -> char {
-        if self.current + 1 >= self.source.len().try_into().unwrap() {
-            return '\0';
+        match self.source.chars().nth(self.current + 1) {
+            Some(char) => char,
+            None => panic!("tried to peek next past end of the file."),
         }
-        
-        self.source.chars().nth(self.current + 1).expect("acceptable character")
     }
 
     fn match_next(&mut self, expected: char) -> bool {
-        if self.is_at_end() {
-            return false;
+        match self.source.chars().nth(self.current) {
+            Some(char) if char == expected => {
+                self.current += 1;
+                true
+            },
+            Some(_) => false,
+            None => false,
         }
-
-        let next = self.source.chars().nth(self.current).expect("acceptable character");
-        if next != expected {
-            return false;
-        }
-
-        self.current += 1;
-        true
     }
 
     fn add_token(&mut self, r#type: Type, literal: Option<Literal>) {
@@ -87,7 +86,7 @@ impl Scanner {
     fn string(&mut self) {
         let start = (self.line, self.start);
 
-        while self.peek() != '"' && !self.is_at_end() {
+        while !self.is_at_end() && self.peek() != '"' {
             if self.peek() == '\n' {
                 self.line += 1;
             }
@@ -96,11 +95,13 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            report(start.0, Some(start.1), "Unterminated string");
+            report(start.0, Some(start.1), "Unterminated string.");
+            return;
         }
 
-        self.advance();
+        self.advance();  // Move to the closing double quotes.
 
+        // Literal does not include the double quotes unlike the lexeme.
         let value = self.source.substring(self.start + 1, self.current - 1);
         self.add_token(Type::STRING, Some(Literal::String(String::from(value))));
     }
@@ -110,10 +111,15 @@ impl Scanner {
             self.advance();
         }
 
-        if self.peek() == '.' && self.peek_next().is_ascii_digit() {
-            self.advance();  // Consume the dot
-            while self.peek().is_ascii_digit() {
-                self.advance();
+        if self.peek() == '.' {
+            if self.peek_next().is_ascii_digit() {
+                self.advance();  // Consume the dot.
+
+                while self.peek().is_ascii_digit() {
+                    self.advance();
+                }
+            } else {
+                report(self.line, Some(self.start), "Unterminated number.");
             }
         }
 
@@ -246,10 +252,19 @@ mod test {
         let result = scanner.advance();
         assert_eq!(result, 'a');
         assert_eq!(scanner.current, 1);
-        
+
         let result = scanner.advance();
         assert_eq!(result, 'b');
         assert_eq!(scanner.current, 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "tried to advance past end of the file.")]
+    fn advance_eof() {
+        let mut scanner = Scanner::new(String::from("a"));
+
+        scanner.advance();
+        scanner.advance();
     }
 
     #[test]
@@ -272,6 +287,16 @@ mod test {
     }
 
     #[test]
+    fn match_next_eof() {
+        let mut scanner = Scanner::new(String::from("a"));
+        scanner.advance();  // Move to the first char
+
+        let result = scanner.match_next('b');
+        assert!(!result);
+        assert_eq!(scanner.current, 1);  // Should not move the current
+    }
+
+    #[test]
     fn peek() {
         let mut scanner = Scanner::new(String::from("abc"));
         scanner.advance();
@@ -282,6 +307,14 @@ mod test {
     }
 
     #[test]
+    #[should_panic(expected = "tried to peek past end of the file.")]
+    fn peek_eof() {
+        let mut scanner = Scanner::new(String::from("a"));
+        scanner.advance();
+        scanner.peek();
+     }
+
+    #[test]
     fn peek_next() {
         let mut scanner = Scanner::new(String::from("abc"));
         scanner.advance();
@@ -290,6 +323,13 @@ mod test {
         assert_eq!(result, 'c');
         assert_eq!(scanner.current, 1);  // Should not move the current
     }
+
+    #[test]
+    #[should_panic(expected = "tried to peek next past end of the file.")]
+    fn peek_next_eof() {
+        let scanner = Scanner::new(String::from("a"));
+        scanner.peek_next();
+     }
 
     #[test]
     fn is_at_end() {

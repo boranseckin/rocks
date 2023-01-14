@@ -47,6 +47,7 @@ pub fn error(line: usize, message: &str) {
 
 fn report(line: usize, location: Option<usize>, message: &str) {
     if let Some(location) = location {
+        let location = location + 1;
         println!("[{line}:{location}] Error: {message}");
     } else {
         println!("[{line}] Error: {message}");
