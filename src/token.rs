@@ -1,25 +1,24 @@
 use std::fmt;
 
-#[allow(non_camel_case_types)]
 #[derive(Debug)]
 #[derive(PartialEq, Clone, Copy)]
 pub enum Type {
   // Single-character tokens.
-  LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-  COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+  LeftParen, RightParen, LeftBrace, RightBrace,
+  Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
 
   // One or two character tokens.
-  BANG, BANG_EQUAL,
-  EQUAL, EQUAL_EQUAL,
-  GREATER, GREATER_EQUAL,
-  LESS, LESS_EQUAL,
+  Bang, BangEqual,
+  Equal, EqualEqual,
+  Greater, GreaterEqual,
+  Less, LessEqual,
 
   // Literals.
-  IDENTIFIER, STRING, NUMBER,
+  Identifier, String, Number,
 
   // Keywords.
-  AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-  PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+  And, Class, Else, False, Fun, For, If, Nil, Or,
+  Print, Return, Super, This, True, Var, While,
 
   EOF
 }
@@ -62,14 +61,14 @@ mod test {
 
     #[test]
     fn create_token() {
-        let r#type = Type::AND;
+        let r#type = Type::And;
         let lexeme = String::from("lex");
         let literal = Literal::String(String::from("xel"));
         let line = 12;
 
         let token = Token::new(r#type, lexeme, Some(literal), line);
 
-        assert_eq!(token.r#type, Type::AND);
+        assert_eq!(token.r#type, Type::And);
         assert_eq!(token.lexeme, "lex");
         assert_eq!(token.literal, Some(Literal::String(String::from("xel"))));
         assert_eq!(token.line, 12);

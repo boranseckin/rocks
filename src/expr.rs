@@ -113,7 +113,7 @@ mod test {
 
     #[test]
     fn create_unary() {
-        let token = Token::new(Type::TRUE, String::from("true"), None, 1);
+        let token = Token::new(Type::True, String::from("true"), None, 1);
         let unary = Unary::new(UnaryPrefix::Bang, token.clone());
 
         assert_eq!(unary.prefix, UnaryPrefix::Bang);
