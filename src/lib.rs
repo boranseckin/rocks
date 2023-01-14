@@ -1,6 +1,7 @@
 use std::{fs, io, process};
 
 pub mod token;
+pub mod expr;
 
 mod scanner;
 use scanner::Scanner;
