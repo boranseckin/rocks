@@ -53,6 +53,7 @@ pub struct Token {
 }
 
 impl Token {
+    /// Creates a new token.
     pub fn new(
         r#type: Type,
         lexeme: String,

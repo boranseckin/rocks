@@ -1,13 +1,12 @@
 use std::{fs, io, process};
 
 pub mod token;
+pub mod scanner;
 pub mod expr;
+pub mod parser;
+pub mod ast;
 
-mod ast;
-mod parser;
-mod scanner;
-
-use ast::AstPrinter;
+use ast::ASTPrinter;
 use parser::Parser;
 use scanner::Scanner;
 use token::{Token, Type};
@@ -53,7 +52,7 @@ fn run(source: String) {
         }
     }
 
-    let mut ast = AstPrinter {};
+    let mut ast = ASTPrinter {};
     println!("{}", ast.print(expression.unwrap()));
 }
 

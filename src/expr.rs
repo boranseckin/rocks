@@ -54,7 +54,7 @@ pub trait ExprVisitor<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{token::Type, ast::AstPrinter};
+    use crate::{token::Type, ast::ASTPrinter};
 
     #[test]
     fn create_literal() {
@@ -123,7 +123,7 @@ mod test {
         let expr_num = Expr::Literal(Literal::Number(12.4));
         let expr_str = Expr::Literal(Literal::String(String::from("hello")));
 
-        let mut ast = AstPrinter {};
+        let mut ast = ASTPrinter {};
 
         assert_eq!(expr_num.accept(&mut ast), "12.4");
         assert_eq!(expr_str.accept(&mut ast), "hello");
@@ -136,7 +136,7 @@ mod test {
             expr: Box::new(Expr::Literal(Literal::Bool(false))),
         });
 
-        let mut ast = AstPrinter {};
+        let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(! false)");
     }
@@ -149,7 +149,7 @@ mod test {
             right: Box::new(Expr::Literal(Literal::Number(23.3))),
         });
 
-        let mut ast = AstPrinter {};
+        let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(- 53.6 23.3)");
     }
@@ -160,7 +160,7 @@ mod test {
             expr: Box::new(Expr::Literal(Literal::Nil)),
         });
 
-        let mut ast = AstPrinter {};
+        let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(group nil)");
     }
@@ -176,7 +176,7 @@ mod test {
             right: Box::new(Expr::Literal(Literal::Number(23.3))),
         });
 
-        let mut ast = AstPrinter {};
+        let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(- (! false) 23.3)");
     }

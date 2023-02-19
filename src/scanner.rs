@@ -12,10 +12,12 @@ pub struct Scanner {
 }
 
 impl Scanner {
+    /// Creates a new scanner.
     pub fn new(source: String) -> Scanner {
         Scanner { source, tokens: vec!(), start: 0, current: 0, line: 1 }
     }
 
+    /// Scans the source code and returns a vector of tokens.
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -34,6 +36,7 @@ impl Scanner {
         self.tokens.clone()
     }
 
+    /// Returns the next character.
     fn advance(&mut self) -> char {
         let temp = self.current;
         self.current += 1;
@@ -44,6 +47,7 @@ impl Scanner {
         }
     }
 
+    /// Returns the next character without consuming it.
     fn peek(&self) -> char {
         match self.source.chars().nth(self.current) {
             Some(char) => char,
@@ -51,6 +55,7 @@ impl Scanner {
         }
     }
 
+    /// Returns the next next character without consuming it.
     fn peek_next(&self) -> char {
         match self.source.chars().nth(self.current + 1) {
             Some(char) => char,
@@ -58,6 +63,7 @@ impl Scanner {
         }
     }
 
+    /// Returns if the next character is the expected character.
     fn match_next(&mut self, expected: char) -> bool {
         match self.source.chars().nth(self.current) {
             Some(char) if char == expected => {
@@ -69,6 +75,7 @@ impl Scanner {
         }
     }
 
+    /// Adds a new token to the list of tokens.
     fn add_token(&mut self, r#type: Type, literal: Option<Literal>) {
         let text = self.source.substring(self.start, self.current);
         self.tokens.push(
@@ -81,10 +88,12 @@ impl Scanner {
         );
     }
 
+    /// Returns if the scanner has reached the end of the file.
     fn is_at_end(&self) -> bool {
        self.current >= self.source.len()
     }
 
+    /// Handles a string literal.
     fn string(&mut self) {
         let start = (self.line, self.start);
 
@@ -108,6 +117,7 @@ impl Scanner {
         self.add_token(Type::String, Some(Literal::String(String::from(value))));
     }
 
+    /// Handles a number literal.
     fn number(&mut self) {
         while self.peek().is_ascii_digit() {
             self.advance();
@@ -129,6 +139,7 @@ impl Scanner {
         self.add_token(Type::Number, Some(Literal::Number(value)));
     }
 
+    /// Handles an identifier or a keyword.
     fn identifier(&mut self) {
         while self.peek().is_alphanumeric() {
             self.advance();
@@ -158,6 +169,7 @@ impl Scanner {
         self.add_token(token_type, None);
     }
 
+    /// Scans the next token.
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
