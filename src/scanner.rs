@@ -154,7 +154,7 @@ impl Scanner {
             "for"    => Type::For,
             "fun"    => Type::Fun,
             "if"     => Type::If,
-            "nil"    => Type::Nil,
+            "null"    => Type::Null,
             "or"     => Type::Or,
             "print"  => Type::Print,
             "return" => Type::Return,

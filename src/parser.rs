@@ -19,7 +19,7 @@ fn error(token: &Token, message: &str) {
 /// - Term       -> Factor ( ( "+" | "-" ) Factor )* ;
 /// - Factor     -> Unary ( ( "*" | "/" ) Unary )* ;
 /// - Unary      -> ( "!" | "-" ) Unary | Primary ;
-/// - Primary    -> NUMBER | STRING | false | true | nil | "(" expression ")" ;
+/// - Primary    -> NUMBER | STRING | false | true | null | "(" expression ")" ;
 pub struct Parser {
     tokens: Vec<Token>,
     current: u32,
@@ -225,8 +225,8 @@ impl Parser {
             return Ok(Expr::Literal(Literal::Bool(true)));
         }
 
-        if self.matches(vec![Type::Nil]) {
-            return Ok(Expr::Literal(Literal::Nil));
+        if self.matches(vec![Type::Null]) {
+            return Ok(Expr::Literal(Literal::Null));
         }
 
         if self.matches(vec![Type::Number, Type::String]) {

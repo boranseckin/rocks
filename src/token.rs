@@ -17,7 +17,7 @@ pub enum Type {
   Identifier, String, Number,
 
   // Keywords.
-  And, Class, Else, False, Fun, For, If, Nil, Or,
+  And, Class, Else, False, Fun, For, If, Null, Or,
   Print, Return, Super, This, True, Var, While,
 
   EOF
@@ -29,7 +29,7 @@ pub enum Literal {
     String(String),
     Number(f32),
     Bool(bool),
-    Nil,
+    Null,
 }
 
 impl fmt::Display for Literal {
@@ -38,7 +38,7 @@ impl fmt::Display for Literal {
             Literal::String(s) => write!(f, "{s}"),
             Literal::Number(n) => write!(f, "{n}"),
             Literal::Bool(b) => write!(f, "{b}"),
-            Literal::Nil => write!(f, "nil"),
+            Literal::Null => write!(f, "null"),
         }
     }
 }

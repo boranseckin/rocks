@@ -157,12 +157,12 @@ mod test {
     #[test]
     fn accept_grouping() {
         let expr = Expr::Grouping(GroupingData {
-            expr: Box::new(Expr::Literal(Literal::Nil)),
+            expr: Box::new(Expr::Literal(Literal::Null)),
         });
 
         let mut ast = ASTPrinter {};
 
-        assert_eq!(expr.accept(&mut ast), "(group nil)");
+        assert_eq!(expr.accept(&mut ast), "(group null)");
     }
 
     #[test]
