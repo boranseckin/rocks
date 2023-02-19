@@ -2,6 +2,15 @@ use crate::parse_error;
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData};
 
+#[derive(Debug, Clone)]
+struct ParseError;
+
+type ParseResult = Result<Expr, ParseError>;
+
+fn error(token: &Token, message: &str) {
+    parse_error(token, message);
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
     current: u32,
@@ -67,7 +76,7 @@ impl Parser {
         }
 
         error(self.peek(), message);
-        Err(ParseError {})
+        Err(ParseError) 
     }
 
     fn expression(&mut self) -> ParseResult {
@@ -87,7 +96,11 @@ impl Parser {
                 Err(ParseError) => return Err(ParseError),
             };
 
-            expr = Expr::Binary(BinaryData { left: Box::new(expr), operator, right: Box::new(right) });
+            expr = Expr::Binary(BinaryData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right)
+            });
         }
 
         Ok(expr)
@@ -105,7 +118,12 @@ impl Parser {
                 Ok(expr) => expr,
                 Err(ParseError) => return Err(ParseError),
             };
-            expr = Expr::Binary(BinaryData { left: Box::new(expr), operator, right: Box::new(right) });
+
+            expr = Expr::Binary(BinaryData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right)
+            });
         }
 
         Ok(expr)
@@ -123,7 +141,12 @@ impl Parser {
                 Ok(expr) => expr,
                 Err(ParseError) => return Err(ParseError),
             };
-            expr = Expr::Binary(BinaryData { left: Box::new(expr), operator, right: Box::new(right) });
+
+            expr = Expr::Binary(BinaryData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right)
+            });
         }
 
         Ok(expr)
@@ -141,7 +164,12 @@ impl Parser {
                 Ok(expr) => expr,
                 Err(ParseError) => return Err(ParseError),
             };
-            expr = Expr::Binary(BinaryData { left: Box::new(expr), operator, right: Box::new(right) });
+
+            expr = Expr::Binary(BinaryData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right)
+            });
         }
 
         Ok(expr)
@@ -154,7 +182,11 @@ impl Parser {
                 Ok(expr) => expr,
                 Err(ParseError) => return Err(ParseError),
             };
-            return Ok(Expr::Unary(UnaryData { operator, expr: Box::new(right) }));
+
+            return Ok(Expr::Unary(UnaryData {
+                operator,
+                expr: Box::new(right)
+            }));
         }
 
         self.primary()
@@ -196,6 +228,7 @@ impl Parser {
         Err(ParseError)
     }
 
+    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 
@@ -217,14 +250,5 @@ impl Parser {
             };
         }
     }
-}
-
-#[derive(Debug, Clone)]
-struct ParseError;
-
-type ParseResult = Result<Expr, ParseError>;
-
-fn error(token: &Token, message: &str) {
-    parse_error(token, message);
 }
 

@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Represents a token in the language.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Type {
   // Single-character tokens.
@@ -22,6 +23,7 @@ pub enum Type {
   EOF
 }
 
+/// Represents a literal value in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     String(String),
@@ -41,10 +43,11 @@ impl fmt::Display for Literal {
     }
 }
 
+/// Represents a token in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub r#type: Type,
-    pub lexeme: String,
+    pub lexeme: String, // String representation of the token
     pub literal: Option<Literal>,
     pub line: usize,
 }

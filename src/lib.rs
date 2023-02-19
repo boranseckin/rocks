@@ -2,10 +2,11 @@ use std::{fs, io, process};
 
 pub mod token;
 pub mod expr;
-pub mod parser;
-pub mod ast;
 
+mod ast;
+mod parser;
 mod scanner;
+
 use ast::AstPrinter;
 use parser::Parser;
 use scanner::Scanner;
