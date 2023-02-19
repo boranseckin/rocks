@@ -1,7 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Type {
   // Single-character tokens.
   LeftParen, RightParen, LeftBrace, RightBrace,
@@ -23,19 +22,31 @@ pub enum Type {
   EOF
 }
 
-#[derive(Debug)]
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     String(String),
-    Float(f32),
+    Number(f32),
+    Bool(bool),
+    Nil,
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::String(s) => write!(f, "{s}"),
+            Literal::Number(n) => write!(f, "{n}"),
+            Literal::Bool(b) => write!(f, "{b}"),
+            Literal::Nil => write!(f, "nil"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
-    r#type: Type,
-    lexeme: String,
-    literal: Option<Literal>,
-    line: usize,
+    pub r#type: Type,
+    pub lexeme: String,
+    pub literal: Option<Literal>,
+    pub line: usize,
 }
 
 impl Token {

@@ -16,7 +16,7 @@ impl Scanner {
         Scanner { source, tokens: vec!(), start: 0, current: 0, line: 1 }
     }
 
-    pub fn scan_tokens(&mut self) {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -30,6 +30,8 @@ impl Scanner {
                 self.line
             )
         );
+
+        self.tokens.clone()
     }
 
     fn advance(&mut self) -> char {
@@ -80,7 +82,7 @@ impl Scanner {
     }
 
     fn is_at_end(&self) -> bool {
-       self.current >= self.source.len().try_into().unwrap()
+       self.current >= self.source.len()
     }
 
     fn string(&mut self) {
@@ -124,7 +126,7 @@ impl Scanner {
         }
 
         let value: f32 = self.source.substring(self.start, self.current).parse().unwrap();
-        self.add_token(Type::Number, Some(Literal::Float(value)));
+        self.add_token(Type::Number, Some(Literal::Number(value)));
     }
 
     fn identifier(&mut self) {
