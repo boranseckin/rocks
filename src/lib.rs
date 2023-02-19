@@ -2,15 +2,21 @@ use std::{fs, io, process};
 
 pub mod token;
 pub mod expr;
+pub mod parser;
+pub mod ast;
 
 mod scanner;
+use ast::AstPrinter;
+use parser::Parser;
 use scanner::Scanner;
+use token::{Token, Type};
 
 static mut HAD_ERROR: bool = false;
 
 pub fn run_file(path: String) {
     let contents = fs::read_to_string(path)
         .expect("Should have been able to read the file");
+
     run(contents);
 
     unsafe {
@@ -35,23 +41,43 @@ pub fn run_prompt() {
 
 fn run(source: String) {
     let mut scanner = Scanner::new(source);
-    scanner.scan_tokens();
+    let tokens = scanner.scan_tokens();
 
-    for token in scanner.tokens.iter() {
-        println!("{:#?}", token);
+    let mut parser = Parser::new(tokens);
+    let expression = parser.parse();
+
+    unsafe {
+        if HAD_ERROR {
+            return;
+        }
     }
+
+    let mut ast = AstPrinter {};
+    println!("{}", ast.print(expression.unwrap()));
 }
 
-pub fn error(line: usize, message: &str) {
+pub fn scan_error(line: usize, message: &str) {
     report(line, None, message);
 }
 
 fn report(line: usize, location: Option<usize>, message: &str) {
     if let Some(location) = location {
         let location = location + 1;
-        println!("[{line}:{location}] Error: {message}");
+        println!("[line {line}:{location}] Error: {message}");
     } else {
-        println!("[{line}] Error: {message}");
+        println!("[line {line}] Error: {message}");
+    }
+
+    unsafe {
+        HAD_ERROR = true;
+    }
+}
+
+pub fn parse_error(token: &Token, message: &str) {
+    if token.r#type == Type::EOF {
+        println!("[line {}] Error at end: {message}", token.line);
+    } else {
+        println!("[line {}] Error at '{}': {message}", token.line, token.lexeme);
     }
 
     unsafe {
