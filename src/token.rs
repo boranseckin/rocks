@@ -32,6 +32,50 @@ pub enum Literal {
     Null,
 }
 
+impl Literal {
+    /// Returns the literal as a number.
+    pub fn as_number(&self) -> f32 {
+        match self {
+            Literal::Number(n) => *n,
+            Literal::Null => 0.0,
+            Literal::Bool(b) => if *b { 1.0 } else { 0.0 },
+            Literal::String(s) => {
+                match s.parse::<f32>() {
+                    Ok(n) => n,
+                    Err(_) => 0.0,
+                }
+            }
+        }
+    }
+
+    /// Returns the literal as a boolean.
+    pub fn as_bool(&self) -> bool {
+        match self {
+            Literal::Bool(b) => *b,
+            Literal::Null => false,
+            _ => true,
+        }
+    }
+}
+
+impl From<&str> for Literal {
+    fn from(s: &str) -> Self {
+        Literal::String(String::from(s))
+    }
+}
+
+impl From<String> for Literal {
+    fn from(s: String) -> Self {
+        Literal::String(s.clone())
+    }
+}
+
+impl From<f32> for Literal {
+    fn from(n: f32) -> Self {
+        Literal::Number(n)
+    }
+}
+
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

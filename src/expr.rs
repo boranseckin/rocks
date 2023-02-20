@@ -1,14 +1,14 @@
 use crate::token::{Token, Literal};
 
 /// Represents a unary expression in the language.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct UnaryData {
     pub operator: Token,
     pub expr: Box<Expr>,
 }
 
 /// Represents a binary expression in the language.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BinaryData {
     pub left: Box<Expr>,
     pub operator: Token,
@@ -16,13 +16,13 @@ pub struct BinaryData {
 }
 
 /// Represents a grouping expression in the language.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GroupingData {
     pub expr: Box<Expr>
 }
 
 /// Represents an expression in the language.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Literal(Literal), // Literal is defined in token.rs
     Unary(UnaryData),
@@ -179,6 +179,21 @@ mod test {
         let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(- (! false) 23.3)");
+    }
+
+    #[test]
+    fn accept_nested_grouping() {
+        let expr = Expr::Binary(BinaryData {
+            left: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Literal(Literal::Number(53.6))),
+            })),
+            operator: Token::new(Type::Minus, String::from("-"), None, 1),
+            right: Box::new(Expr::Literal(Literal::Number(23.3))),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "(- (group 53.6) 23.3)");
     }
 }
 

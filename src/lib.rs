@@ -5,6 +5,7 @@ pub mod scanner;
 pub mod expr;
 pub mod parser;
 pub mod ast;
+pub mod interpreter;
 
 use ast::ASTPrinter;
 use parser::Parser;
@@ -53,7 +54,10 @@ fn run(source: String) {
     }
 
     let mut ast = ASTPrinter {};
-    println!("{}", ast.print(expression.unwrap()));
+    println!("{}", ast.print(expression.clone().unwrap()));
+
+    let mut interpreter = interpreter::Interpreter {};
+    println!("{}", interpreter.evaluate(&expression.unwrap()));
 }
 
 pub fn scan_error(line: usize, message: &str) {
