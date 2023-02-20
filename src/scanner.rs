@@ -256,7 +256,7 @@ impl Scanner {
                     ScanError {
                         line: self.line,
                         location: self.current,
-                        message: format!("Unexpected character '{}'", c),
+                        message: format!("Unexpected character '{c}'"),
                     }.throw();
                 }
             },

@@ -30,28 +30,28 @@ impl ExprVisitor<Literal> for Interpreter {
         let right = self.evaluate(&binary.right);
 
         match binary.operator.r#type {
-            Type::Greater       => return Literal::Bool(left.as_number() > right.as_number()),
-            Type::GreaterEqual  => return Literal::Bool(left.as_number() >= right.as_number()),
-            Type::Less          => return Literal::Bool(left.as_number() < right.as_number()),
-            Type::LessEqual     => return Literal::Bool(left.as_number() <= right.as_number()),
-            Type::EqualEqual    => return Literal::Bool(left.as_number() == right.as_number()),
-            Type::BangEqual     => return Literal::Bool(left.as_number() != right.as_number()),
-            Type::Slash         => return Literal::Number(left.as_number() / right.as_number()),
-            Type::Star          => return Literal::Number(left.as_number() * right.as_number()),
-            Type::Minus         => return Literal::Number(left.as_number() - right.as_number()),
+            Type::Greater       => Literal::Bool(left.as_number() > right.as_number()),
+            Type::GreaterEqual  => Literal::Bool(left.as_number() >= right.as_number()),
+            Type::Less          => Literal::Bool(left.as_number() < right.as_number()),
+            Type::LessEqual     => Literal::Bool(left.as_number() <= right.as_number()),
+            Type::EqualEqual    => Literal::Bool(left.as_number() == right.as_number()),
+            Type::BangEqual     => Literal::Bool(left.as_number() != right.as_number()),
+            Type::Slash         => Literal::Number(left.as_number() / right.as_number()),
+            Type::Star          => Literal::Number(left.as_number() * right.as_number()),
+            Type::Minus         => Literal::Number(left.as_number() - right.as_number()),
             Type::Plus          => match (left, right) {
-                (Literal::Number(l), Literal::Number(r)) => return Literal::Number(l + r),
-                (Literal::String(l), Literal::String(r)) => return Literal::String(l + &r),
+                (Literal::Number(l), Literal::Number(r)) => Literal::Number(l + r),
+                (Literal::String(l), Literal::String(r)) => Literal::String(l + &r),
                 _ => {
                     RuntimeError {
                         token: binary.operator.clone(),
                         message: "Tried to add two unsupported types".to_string(),
                     }.throw();
-                    return Literal::Null;
+                    Literal::Null
                 }
             },
             _ => unreachable!(),
-        };
+        }
     }
 
     fn visit_grouping_expr(&mut self, grouping: &expr::GroupingData) -> Literal {

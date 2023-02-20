@@ -39,12 +39,7 @@ impl Literal {
             Literal::Number(n) => *n,
             Literal::Null => 0.0,
             Literal::Bool(b) => if *b { 1.0 } else { 0.0 },
-            Literal::String(s) => {
-                match s.parse::<f32>() {
-                    Ok(n) => n,
-                    Err(_) => 0.0,
-                }
-            }
+            Literal::String(s) => s.parse::<f32>().unwrap_or(0.0),
         }
     }
 
@@ -66,7 +61,7 @@ impl From<&str> for Literal {
 
 impl From<String> for Literal {
     fn from(s: String) -> Self {
-        Literal::String(s.clone())
+        Literal::String(s)
     }
 }
 
@@ -138,7 +133,7 @@ mod test {
         let literal = Literal::Number(12.0);
 
         assert_eq!(literal.as_number(), 12.0);
-        assert_eq!(literal.as_bool(), true);
+        assert!(literal.as_bool());
     }
 
     #[test]
@@ -146,7 +141,7 @@ mod test {
         let literal = Literal::String(String::from("12.0"));
 
         assert_eq!(literal.as_number(), 12.0);
-        assert_eq!(literal.as_bool(), true);
+        assert!(literal.as_bool());
     }
 
     #[test]
@@ -154,7 +149,7 @@ mod test {
         let literal = Literal::String(String::from("x"));
 
         assert_eq!(literal.as_number(), 0.0);
-        assert_eq!(literal.as_bool(), true);
+        assert!(literal.as_bool());
     }
 
     #[test]
@@ -162,7 +157,7 @@ mod test {
         let literal = Literal::Bool(true);
 
         assert_eq!(literal.as_number(), 1.0);
-        assert_eq!(literal.as_bool(), true);
+        assert!(literal.as_bool());
     }
 
     #[test]
@@ -170,14 +165,14 @@ mod test {
         let literal = Literal::Null;
 
         assert_eq!(literal.as_number(), 0.0);
-        assert_eq!(literal.as_bool(), false);
+        assert!(!literal.as_bool());
     }
 
     #[test]
     fn display_literal() {
         let literal = Literal::String(String::from("12.0"));
 
-        assert_eq!(format!("{}", literal), "12.0");
+        assert_eq!(format!("{literal}"), "12.0");
     }
 }
 
