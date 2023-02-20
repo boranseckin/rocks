@@ -1,4 +1,4 @@
-use std::{fs, io, process};
+use std::{fs, io::{self, Write}, process};
 
 pub mod error;
 pub mod token;
@@ -46,6 +46,8 @@ impl rlox {
     pub fn run_prompt(&mut self) {
         loop {
             let mut input = String::new();
+            io::stdout().write(b"> ").unwrap();
+            io::stdout().flush().unwrap();
             io::stdin().read_line(&mut input).expect("acceptable expression");
 
             self.run(input);
@@ -79,6 +81,6 @@ impl rlox {
         // let mut ast = ASTPrinter {};
         // println!("{}", ast.print(expression.clone().unwrap()));
 
-        println!("{}", self.interpreter.evaluate(&expression.unwrap()));
+        println!("{}\n", self.interpreter.evaluate(&expression.unwrap()));
     }
 }

@@ -7,6 +7,8 @@ fn main() {
 
     let mut rlox = rlox::new();
 
+    println!("rlox v{}", env!("CARGO_PKG_VERSION"));
+
     match args.len() {
         n if n > 2 => {
             println!("Usage: rlox [script]");
