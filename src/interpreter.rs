@@ -1,3 +1,4 @@
+use crate::error::{rloxError, RuntimeError};
 use crate::expr::{self, Expr, ExprVisitor};
 use crate::token::{Literal, Type};
 
@@ -41,7 +42,13 @@ impl ExprVisitor<Literal> for Interpreter {
             Type::Plus          => match (left, right) {
                 (Literal::Number(l), Literal::Number(r)) => return Literal::Number(l + r),
                 (Literal::String(l), Literal::String(r)) => return Literal::String(l + &r),
-                _ => panic!("Tried to add two unsupported types."),
+                _ => {
+                    RuntimeError {
+                        token: binary.operator.clone(),
+                        message: "Tried to add two unsupported types".to_string(),
+                    }.throw();
+                    return Literal::Null;
+                }
             },
             _ => unreachable!(),
         };
@@ -121,7 +128,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn evaluate_string_and_number() {
         let mut interpreter = Interpreter;
         let expr = Expr::Binary(expr::BinaryData {
@@ -129,7 +135,7 @@ mod test {
             operator: Token::new(Type::Plus, String::from("+"), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        interpreter.evaluate(&expr);
+        assert_eq!(interpreter.evaluate(&expr), Literal::Null);
     }
 
     #[test]

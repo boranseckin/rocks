@@ -1,15 +1,8 @@
-use crate::parse_error;
+use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData};
 
-#[derive(Debug, Clone)]
-struct ParseError;
-
 type ParseResult = Result<Expr, ParseError>;
-
-fn error(token: &Token, message: &str) {
-    parse_error(token, message);
-}
 
 /// Parses the tokens and returns the resulting expression.
 ///
@@ -37,7 +30,10 @@ impl Parser {
     pub fn parse(&mut self) -> Option<Expr> {
         match self.expression() {
             Ok(expr) => Some(expr),
-            Err(_) => None,
+            Err(e) => {
+                e.throw();
+                None
+            },
         }
     }
 
@@ -92,8 +88,10 @@ impl Parser {
             return Ok(self.advance());
         }
 
-        error(self.peek(), message);
-        Err(ParseError) 
+        Err(ParseError {
+            token: self.peek().clone(),
+            message: message.to_string(),
+        }) 
     }
 
     /// Parses an expression.
@@ -105,14 +103,14 @@ impl Parser {
     fn equality(&mut self) -> ParseResult {
         let mut expr = match self.comparison() {
             Ok(expr) => expr,
-            Err(ParseError) => return Err(ParseError),
+            Err(error) => return Err(error),
         };
 
         while self.matches(vec![Type::BangEqual, Type::EqualEqual]) {
             let operator = self.previous().clone();
             let right = match self.comparison() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             expr = Expr::Binary(BinaryData {
@@ -129,14 +127,14 @@ impl Parser {
     fn comparison(&mut self) -> ParseResult {
         let mut expr = match self.term() {
             Ok(expr) => expr,
-            Err(ParseError) => return Err(ParseError),
+            Err(error) => return Err(error),
         };
 
         while self.matches(vec![Type::Greater, Type::GreaterEqual, Type::Less, Type::LessEqual]) {
             let operator = self.previous().clone();
             let right = match self.term() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             expr = Expr::Binary(BinaryData {
@@ -153,14 +151,14 @@ impl Parser {
     fn term(&mut self) -> ParseResult {
         let mut expr = match self.factor() {
             Ok(expr) => expr,
-            Err(ParseError) => return Err(ParseError),
+            Err(error) => return Err(error),
         };
 
         while self.matches(vec![Type::Minus, Type::Plus]) {
             let operator = self.previous().clone();
             let right = match self.factor() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             expr = Expr::Binary(BinaryData {
@@ -177,14 +175,14 @@ impl Parser {
     fn factor(&mut self) -> ParseResult {
         let mut expr = match self.unary() {
             Ok(expr) => expr,
-            Err(ParseError) => return Err(ParseError),
+            Err(error) => return Err(error),
         };
 
         while self.matches(vec![Type::Slash, Type::Star]) {
             let operator = self.previous().clone();
             let right = match self.unary() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             expr = Expr::Binary(BinaryData {
@@ -203,7 +201,7 @@ impl Parser {
             let operator = self.previous().clone();
             let right = match self.unary() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             return Ok(Expr::Unary(UnaryData {
@@ -237,19 +235,21 @@ impl Parser {
         if self.matches(vec![Type::LeftParen]) {
             let expr = match self.expression() {
                 Ok(expr) => expr,
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
-            match self.consume(Type::RightParen, "Expect ')' after expression") {
+            match self.consume(Type::RightParen, "Expected ')' after expression") {
                 Ok(_) => (),
-                Err(ParseError) => return Err(ParseError),
+                Err(error) => return Err(error),
             };
 
             return Ok(Expr::Grouping(GroupingData { expr: Box::new(expr) }));
         }
 
-        error(self.peek(), "Expression expected.");
-        Err(ParseError)
+        Err(ParseError {
+            token: self.peek().clone(),
+            message: "Expected expression".to_string()
+        })
     }
 
     #[allow(dead_code)]

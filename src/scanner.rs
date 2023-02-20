@@ -1,7 +1,7 @@
 use substring::Substring;
 
 use crate::token::{Token, Type, Literal};
-use crate::report;
+use crate::error::{rloxError, ScanError};
 
 pub struct Scanner {
     source: String,
@@ -106,9 +106,15 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            report(start.0, Some(start.1), "Unterminated string.");
+            ScanError {
+                line: start.0,
+                location: start.1,
+                message: String::from("Unterminated string"),
+            }.throw();
             return;
         }
+
+        println!("string: {}", self.source.substring(self.start, self.current));
 
         self.advance();  // Move to the closing double quotes.
 
@@ -131,7 +137,12 @@ impl Scanner {
                     self.advance();
                 }
             } else {
-                report(self.line, Some(self.start), "Unterminated number.");
+                ScanError {
+                    line: self.line,
+                    location: self.start,
+                    message: String::from("Unterminated number"),
+                }.throw();
+                return;
             }
         }
 
@@ -154,7 +165,7 @@ impl Scanner {
             "for"    => Type::For,
             "fun"    => Type::Fun,
             "if"     => Type::If,
-            "null"    => Type::Null,
+            "null"   => Type::Null,
             "or"     => Type::Or,
             "print"  => Type::Print,
             "return" => Type::Return,
@@ -242,11 +253,11 @@ impl Scanner {
                     self.identifier();
                 // Unknown
                 } else {
-                    report(
-                        self.line,
-                        Some(self.current),
-                        format!("Unexpected character {}.", c).as_str()
-                    ); 
+                    ScanError {
+                        line: self.line,
+                        location: self.current,
+                        message: format!("Unexpected character '{}'", c),
+                    }.throw();
                 }
             },
         }
@@ -354,6 +365,96 @@ mod test {
 
         scanner.advance();
         assert!(scanner.is_at_end());
+    }
+
+    #[test]
+    fn add_token() {
+        let mut scanner = Scanner::new(String::from("a"));
+        scanner.add_token(Type::Identifier, None);
+
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Identifier);
+        assert_eq!(scanner.tokens[0].literal, None);
+    }
+
+    #[test]
+    fn string() {
+        let mut scanner = Scanner::new(String::from("\"hello\""));
+        scanner.current = 1; // Skip the first quote
+        scanner.string();
+
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::String);
+        assert_eq!(scanner.tokens[0].literal, Some(Literal::String(String::from("hello"))));
+    }
+
+    #[test]
+    fn string_unterminated() {
+        let mut scanner = Scanner::new(String::from("\"hello\n"));
+        scanner.current = 1; // Skip the first quote
+        scanner.string();
+
+        assert_eq!(scanner.tokens.len(), 0);
+    }
+
+    #[test]
+    fn number() {
+        let mut scanner = Scanner::new(String::from("123\n"));
+        scanner.number();
+
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Number);
+        assert_eq!(scanner.tokens[0].literal, Some(Literal::Number(123.0)));
+    }
+
+    #[test]
+    fn identifier() {
+        let mut scanner = Scanner::new(String::from("abc\n"));
+        scanner.identifier();
+
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Identifier);
+        assert_eq!(scanner.tokens[0].lexeme, String::from("abc"));
+        assert_eq!(scanner.tokens[0].literal, None);
+    }
+
+    #[test]
+    fn keyword() {
+        let mut scanner = Scanner::new(String::from("var\n"));
+        scanner.identifier();
+
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Var);
+        assert_eq!(scanner.tokens[0].lexeme, String::from("var"));
+        assert_eq!(scanner.tokens[0].literal, None);
+    }
+
+    #[test]
+    fn scan_tokens() {
+        let mut scanner = Scanner::new(String::from("var a = 123;\n"));
+        scanner.scan_tokens();
+
+        assert_eq!(scanner.tokens.len(), 6);
+        assert_eq!(scanner.tokens[0].r#type, Type::Var);
+        assert_eq!(scanner.tokens[1].r#type, Type::Identifier);
+        assert_eq!(scanner.tokens[2].r#type, Type::Equal);
+        assert_eq!(scanner.tokens[3].r#type, Type::Number);
+        assert_eq!(scanner.tokens[4].r#type, Type::Semicolon);
+        assert_eq!(scanner.tokens[5].r#type, Type::EOF);
+    }
+
+    #[test]
+    fn scan_tokens_with_comments() {
+        let mut scanner = Scanner::new(String::from("var a = 123; // This is a comment\n"));
+        scanner.scan_tokens();
+
+        assert_eq!(scanner.tokens.len(), 6);
+        assert_eq!(scanner.tokens[0].r#type, Type::Var);
+        assert_eq!(scanner.tokens[1].r#type, Type::Identifier);
+        assert_eq!(scanner.tokens[2].r#type, Type::Equal);
+        assert_eq!(scanner.tokens[3].r#type, Type::Number);
+        assert_eq!(scanner.tokens[4].r#type, Type::Semicolon);
+        assert_eq!(scanner.tokens[5].r#type, Type::EOF);
     }
 }
 

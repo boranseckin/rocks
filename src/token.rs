@@ -132,5 +132,52 @@ mod test {
         assert_eq!(token.literal, Some(Literal::String(String::from("xel"))));
         assert_eq!(token.line, 12);
     }
+
+    #[test]
+    fn number_literal() {
+        let literal = Literal::Number(12.0);
+
+        assert_eq!(literal.as_number(), 12.0);
+        assert_eq!(literal.as_bool(), true);
+    }
+
+    #[test]
+    fn string_literal() {
+        let literal = Literal::String(String::from("12.0"));
+
+        assert_eq!(literal.as_number(), 12.0);
+        assert_eq!(literal.as_bool(), true);
+    }
+
+    #[test]
+    fn string_literal_invalid() {
+        let literal = Literal::String(String::from("x"));
+
+        assert_eq!(literal.as_number(), 0.0);
+        assert_eq!(literal.as_bool(), true);
+    }
+
+    #[test]
+    fn bool_literal() {
+        let literal = Literal::Bool(true);
+
+        assert_eq!(literal.as_number(), 1.0);
+        assert_eq!(literal.as_bool(), true);
+    }
+
+    #[test]
+    fn null_literal() {
+        let literal = Literal::Null;
+
+        assert_eq!(literal.as_number(), 0.0);
+        assert_eq!(literal.as_bool(), false);
+    }
+
+    #[test]
+    fn display_literal() {
+        let literal = Literal::String(String::from("12.0"));
+
+        assert_eq!(format!("{}", literal), "12.0");
+    }
 }
 
