@@ -114,8 +114,6 @@ impl Scanner {
             return;
         }
 
-        println!("string: {}", self.source.substring(self.start, self.current));
-
         self.advance();  // Move to the closing double quotes.
 
         // Literal does not include the double quotes unlike the lexeme.

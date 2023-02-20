@@ -1,4 +1,4 @@
-use crate::HAD_ERROR;
+use crate::{HAD_ERROR, HAD_RUNTIME_ERROR};
 use crate::token::{Token, Type};
 
 #[allow(non_camel_case_types)]
@@ -71,7 +71,7 @@ impl rloxError for RuntimeError {
         );
 
         unsafe {
-            HAD_ERROR = true;
+            HAD_RUNTIME_ERROR = true;
         }
     }
 }
