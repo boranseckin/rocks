@@ -1,13 +1,13 @@
 use crate::token::{Token, Literal};
 
-/// Represents a unary expression in the language.
+/// Represents a unary expression's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryData {
     pub operator: Token,
     pub expr: Box<Expr>,
 }
 
-/// Represents a binary expression in the language.
+/// Represents a binary expression's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinaryData {
     pub left: Box<Expr>,
@@ -15,7 +15,7 @@ pub struct BinaryData {
     pub right: Box<Expr>,
 }
 
-/// Represents a grouping expression in the language.
+/// Represents a grouping expression's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct GroupingData {
     pub expr: Box<Expr>

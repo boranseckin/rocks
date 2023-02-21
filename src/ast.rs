@@ -1,4 +1,5 @@
 use crate::expr::{ExprVisitor, UnaryData, BinaryData, GroupingData, Expr};
+use crate::stmt::{StmtVisitor, Stmt};
 use crate::token::Literal;
 
 /// Returns a string representation of the expression in paranthesize.
@@ -46,3 +47,12 @@ impl ExprVisitor<String> for ASTPrinter {
     }
 }
 
+impl StmtVisitor<String> for ASTPrinter {
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> String {
+        parenthesize!(self, "expr", stmt)
+    }
+
+    fn visit_print_stmt(&mut self, stmt: &Stmt) -> String {
+        parenthesize!(self, "print", stmt)
+    }
+}

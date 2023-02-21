@@ -4,11 +4,11 @@ pub mod error;
 pub mod token;
 pub mod scanner;
 pub mod expr;
+pub mod stmt;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
 
-// use ast::ASTPrinter;
 use parser::Parser;
 use scanner::Scanner;
 
@@ -46,7 +46,7 @@ impl rlox {
     pub fn run_prompt(&mut self) {
         loop {
             let mut input = String::new();
-            io::stdout().write(b"> ").unwrap();
+            io::stdout().write_all(b"> ").unwrap();
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut input).expect("acceptable expression");
 
@@ -70,7 +70,7 @@ impl rlox {
         }
 
         let mut parser = Parser::new(tokens);
-        let expression = parser.parse();
+        let statements = parser.parse();
 
         unsafe {
             if HAD_ERROR {
@@ -78,9 +78,12 @@ impl rlox {
             }
         }
 
-        // let mut ast = ASTPrinter {};
-        // println!("{}", ast.print(expression.clone().unwrap()));
+        self.interpreter.interpret(&statements);
+    }
+}
 
-        println!("{}\n", self.interpreter.evaluate(&expression.unwrap()));
+impl Default for rlox {
+    fn default() -> Self {
+        Self::new()
     }
 }

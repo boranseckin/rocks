@@ -1,11 +1,22 @@
 use crate::error::{rloxError, RuntimeError};
 use crate::expr::{self, Expr, ExprVisitor};
+use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Literal, Type};
 
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn evaluate(&mut self, expr: &Expr) -> Literal {
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) {
+        for statement in statements {
+            self.execute(statement);
+        }
+    }
+
+    fn execute(&mut self, stmt: &Stmt) {
+        stmt.accept(self)
+    }
+
+    fn evaluate(&mut self, expr: &Expr) -> Literal {
         expr.accept(self)
     }
 }
@@ -56,6 +67,19 @@ impl ExprVisitor<Literal> for Interpreter {
 
     fn visit_grouping_expr(&mut self, grouping: &expr::GroupingData) -> Literal {
         self.evaluate(&grouping.expr)
+    }
+}
+
+impl StmtVisitor<()> for Interpreter {
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Expression(data) = stmt else { unreachable!() };
+        self.evaluate(&data.expr);
+    }
+
+    fn visit_print_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Print(data) = stmt else { unreachable!() };
+        let value = self.evaluate(&data.expr);
+        println!("{value}");
     }
 }
 

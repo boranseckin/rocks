@@ -1,6 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData};
+use crate::stmt::{Stmt, PrintData, ExpressionData};
 
 type ParseResult = Result<Expr, ParseError>;
 
@@ -27,14 +28,17 @@ impl Parser {
     }
 
     /// Parses the tokens and returns the resulting expression.
-    pub fn parse(&mut self) -> Option<Expr> {
-        match self.expression() {
-            Ok(expr) => Some(expr),
-            Err(e) => {
-                e.throw();
-                None
-            },
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
+
+        while !self.is_at_end() {
+            match self.statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(error) => error.throw(),
+            }
         }
+
+        statements
     }
 
     /// Returns the next token without consuming it.
@@ -97,6 +101,39 @@ impl Parser {
     /// Parses an expression.
     fn expression(&mut self) -> ParseResult {
         self.equality()
+    }
+
+    /// Parses a statement.
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if self.matches(vec![Type::Print]) {
+            return self.print_statement();
+        }
+
+        self.expression_statement()
+    }
+
+    /// Parses a print statement.
+    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = match self.expression() {
+            Ok(expr) => expr,
+            Err(error) => return Err(error),
+        };
+
+        self.consume(Type::Semicolon, "Expect ';' after value")?;
+
+        Ok(Stmt::Print(PrintData { expr }))
+    }
+
+    /// Parses an expression statement.
+    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = match self.expression() {
+            Ok(expr) => expr,
+            Err(error) => return Err(error),
+        };
+
+        self.consume(Type::Semicolon, "Expect ';' after expression")?;
+
+        Ok(Stmt::Expression(ExpressionData { expr }))
     }
 
     /// Parses an equality expression.
@@ -358,6 +395,22 @@ mod test {
             })),
             operator: Token::new(Type::Plus, "+".to_string(), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(4.0)))
+        }));
+    }
+
+    #[test]
+    fn test_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Print, "print".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.statement().unwrap();
+
+        assert_eq!(stmt, Stmt::Print(PrintData {
+            expr: Expr::Literal(Literal::Number(123.0))
         }));
     }
 }
