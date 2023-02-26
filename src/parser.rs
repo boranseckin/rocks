@@ -98,29 +98,23 @@ impl Parser {
         }
 
         Err(ParseError {
-            token: self.peek().clone(),
+            token: self.previous().clone(),
             message: message.to_string(),
         }) 
     }
 
     /// Parses a decleration.
     fn decleration(&mut self) -> Option<Stmt> {
-        if self.matches(vec![Type::Var]) {
-            return match self.var_decleration() {
-                Ok(stmt) => Some(stmt),
-                Err(error) => {
-                    // TODO: handle error reporting
-                    // error.throw();
-                    self.synchronize();
-                    None
-                }
-            };
-        }
+        let statement = if self.matches(vec![Type::Var]) {
+            self.var_decleration()
+        } else {
+            self.statement()
+        };
 
-        match self.statement() {
+        match statement {
             Ok(stmt) => Some(stmt),
             Err(error) => {
-                // error.throw();
+                error.throw();
                 self.synchronize();
                 None
             }

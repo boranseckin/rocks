@@ -65,19 +65,15 @@ impl rlox {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens();
 
-        unsafe {
-            if HAD_ERROR {
-                return;
-            }
+        if error::did_error() {
+            return;
         }
 
         let mut parser = Parser::new(tokens);
         let statements = parser.parse();
 
-        unsafe {
-            if HAD_ERROR {
-                return;
-            }
+        if error::did_error() {
+            return;
         }
 
         self.interpreter.interpret(&statements);

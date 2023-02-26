@@ -1,5 +1,5 @@
 use crate::environment::Environment;
-use crate::error::{rloxError, RuntimeError};
+use crate::error::{rloxError, RuntimeError, self};
 use crate::expr::{self, Expr, ExprVisitor};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Literal, Type};
@@ -99,6 +99,12 @@ impl StmtVisitor<()> for Interpreter {
     fn visit_print_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Print(data) = stmt else { unreachable!() };
         let value = self.evaluate(&data.expr);
+
+        // Make sure evaluate didn't throw an error
+        if error::did_error() {
+            return;
+        }
+
         println!("{value}");
     }
 

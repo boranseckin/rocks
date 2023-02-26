@@ -1,6 +1,10 @@
 use crate::{HAD_ERROR, HAD_RUNTIME_ERROR};
 use crate::token::{Token, Type};
 
+pub fn did_error() -> bool {
+    unsafe { HAD_ERROR }
+}
+
 #[allow(non_camel_case_types)]
 pub trait rloxError {
     fn throw(&self);
