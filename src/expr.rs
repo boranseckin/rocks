@@ -26,6 +26,12 @@ pub struct VariableData {
     pub name: Token,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct AssignData {
+    pub name: Token,
+    pub value: Box<Expr>,
+}
+
 /// Represents an expression in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
@@ -34,6 +40,7 @@ pub enum Expr {
     Binary(BinaryData),
     Grouping(GroupingData),
     Variable(VariableData),
+    Assign(AssignData),
 }
 
 impl Expr {
@@ -47,6 +54,7 @@ impl Expr {
             Binary(args) => visitor.visit_binary_expr(args),
             Grouping(args) => visitor.visit_grouping_expr(args),
             Variable(args) => visitor.visit_variable_expr(args),
+            Assign(args) => visitor.visit_assign_expr(args),
         }
     }
 }
@@ -57,6 +65,7 @@ pub trait ExprVisitor<T> {
     fn visit_binary_expr(&mut self, binary: &BinaryData) -> T;
     fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> T;
     fn visit_variable_expr(&mut self, variable: &VariableData) -> T;
+    fn visit_assign_expr(&mut self, assign: &AssignData) -> T;
 }
 
 #[cfg(test)]
@@ -279,6 +288,18 @@ mod test {
         let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "a");
+    }
+
+    #[test]
+    fn accept_assign() {
+        let expr = Expr::Assign(AssignData {
+            name: Token::new(Type::Identifier, String::from("a"), None, 1),
+            value: Box::new(Expr::Literal(Literal::Number(23.3))),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "(= a 23.3)");
     }
 }
 

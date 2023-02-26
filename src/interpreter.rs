@@ -88,6 +88,12 @@ impl ExprVisitor<Literal> for Interpreter {
             Literal::Null
         })
     }
+
+    fn visit_assign_expr(&mut self, assign: &expr::AssignData) -> Literal {
+        let value = self.evaluate(&assign.value);
+        self.environment.assign(&assign.name, value.to_owned());
+        value
+    }
 }
 
 impl StmtVisitor<()> for Interpreter {
@@ -269,6 +275,21 @@ mod test {
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
         assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+    }
+
+    #[test]
+    fn evaluate_assign() {
+        let mut interpreter = Interpreter::new();
+        interpreter.environment.define("a", Literal::Number(0.0));
+        let expr = Expr::Assign(expr::AssignData {
+            name: Token::new(Type::Identifier, String::from("a"), None, 1),
+            value: Box::new(Expr::Literal(Literal::Number(12.0))),
+        });
+        assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
+        assert_eq!(
+            interpreter.environment.get(&Token::new(Type::Identifier, String::from("a"), None, 1)).unwrap(),
+            Literal::Number(12.0)
+        );
     }
 }
 

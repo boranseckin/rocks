@@ -1,9 +1,9 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData};
 use crate::stmt::{Stmt, PrintData, ExpressionData, VarData};
 
-type ParseResult = Result<Expr, ParseError>;
+type ParseResult<T> = Result<T, ParseError>;
 
 /// Returns if the next token is any of the given types.
 macro_rules! matches {
@@ -27,7 +27,8 @@ macro_rules! matches {
 /// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - ExprStmt    -> Expression ";" ;
 /// - PrintStmt   -> "print" Expression ";" ;
-/// - Expression  -> Equality ;
+/// - Expression  -> Assignment ;
+/// - Assignment  -> IDENTIFIER "=" Assignment | Equality ;
 /// - Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
 /// - Comparison  -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
 /// - Term        -> Factor ( ( "+" | "-" ) Factor )* ;
@@ -124,7 +125,7 @@ impl Parser {
     }
 
     /// Parses a variable decleration.
-    fn var_decleration(&mut self) -> Result<Stmt, ParseError> {
+    fn var_decleration(&mut self) -> ParseResult<Stmt> {
         let name = self.consume(Type::Identifier, "Expect variable name")?.clone();
 
         let mut initializer: Option<Expr> = None;
@@ -140,12 +141,12 @@ impl Parser {
     }
 
     /// Parses an expression.
-    fn expression(&mut self) -> ParseResult {
-        self.equality()
+    fn expression(&mut self) -> ParseResult<Expr> {
+        self.assignment()
     }
 
     /// Parses a statement.
-    fn statement(&mut self) -> Result<Stmt, ParseError> {
+    fn statement(&mut self) -> ParseResult<Stmt> {
         if matches!(self, Type::Print) {
             return self.print_statement();
         }
@@ -154,7 +155,7 @@ impl Parser {
     }
 
     /// Parses a print statement.
-    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn print_statement(&mut self) -> ParseResult<Stmt> {
         let expr = match self.expression() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -166,7 +167,7 @@ impl Parser {
     }
 
     /// Parses an expression statement.
-    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn expression_statement(&mut self) -> ParseResult<Stmt> {
         let expr = match self.expression() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -177,8 +178,31 @@ impl Parser {
         Ok(Stmt::Expression(ExpressionData { expr }))
     }
 
+    /// Parses an assignment expression.
+    fn assignment(&mut self) -> ParseResult<Expr> {
+        let expr = self.equality()?;
+
+        if matches!(self, Type::Equal) {
+            let equals = self.previous().to_owned();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(data) = expr {
+                let name = data.name;
+
+                return Ok(Expr::Assign(AssignData { name, value: Box::new(value) }))
+            }
+
+            ParseError {
+                token: equals,
+                message: "Invalid assignment target".to_string()
+            }.throw();
+        }
+
+        Ok(expr)
+    }
+
     /// Parses an equality expression.
-    fn equality(&mut self) -> ParseResult {
+    fn equality(&mut self) -> ParseResult<Expr> {
         let mut expr = match self.comparison() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -202,7 +226,7 @@ impl Parser {
     }
 
     /// Parses a comparison expression.
-    fn comparison(&mut self) -> ParseResult {
+    fn comparison(&mut self) -> ParseResult<Expr> {
         let mut expr = match self.term() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -226,7 +250,7 @@ impl Parser {
     }
 
     /// Parses a term expression.
-    fn term(&mut self) -> ParseResult {
+    fn term(&mut self) -> ParseResult<Expr> {
         let mut expr = match self.factor() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -250,7 +274,7 @@ impl Parser {
     }
 
     /// Parses a factor expression.
-    fn factor(&mut self) -> ParseResult {
+    fn factor(&mut self) -> ParseResult<Expr> {
         let mut expr = match self.unary() {
             Ok(expr) => expr,
             Err(error) => return Err(error),
@@ -274,7 +298,7 @@ impl Parser {
     }
 
     /// Parses a unary expression.
-    fn unary(&mut self) -> ParseResult {
+    fn unary(&mut self) -> ParseResult<Expr> {
         if matches!(self, Type::Bang, Type::Minus) {
             let operator = self.previous().clone();
             let right = match self.unary() {
@@ -292,7 +316,7 @@ impl Parser {
     }
 
     /// Parses a primary expression.
-    fn primary(&mut self) -> Result<Expr, ParseError> {
+    fn primary(&mut self) -> ParseResult<Expr> {
         if matches!(self, Type::False) {
             return Ok(Expr::Literal(Literal::Bool(false)));
         }
@@ -526,6 +550,27 @@ mod test {
             name: Token::new(Type::Identifier, "a".to_string(), None, 1),
             initializer: Some(Expr::Literal(Literal::Number(123.0)))
         }));
+    }
+
+    #[test]
+    fn test_assignment() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Identifier, "a".to_string(), None, 1),
+            Token::new(Type::Equal, "=".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.assignment().unwrap();
+
+        assert_eq!(
+            stmt,
+            Expr::Assign(AssignData {
+                name: Token::new(Type::Identifier, "a".to_string(), None, 1),
+                value: Box::new(Expr::Literal(Literal::Number(123.0)))
+            })
+        );
     }
 }
 

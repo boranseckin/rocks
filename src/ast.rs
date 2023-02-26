@@ -49,6 +49,10 @@ impl ExprVisitor<String> for ASTPrinter {
     fn visit_variable_expr(&mut self, variable: &crate::expr::VariableData) -> String {
         variable.name.lexeme.clone()
     }
+
+    fn visit_assign_expr(&mut self, assign: &crate::expr::AssignData) -> String {
+        parenthesize!(self, format!("= {}", &assign.name.lexeme).as_str(), assign.value)
+    }
 }
 
 impl StmtVisitor<String> for ASTPrinter {
