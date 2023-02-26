@@ -87,4 +87,20 @@ impl StmtVisitor<String> for ASTPrinter {
             unreachable!()
         }
     }
+
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::Block(data) = stmt {
+            let mut string = String::new();
+            string += "{";
+            for stmt in &data.statements {
+                string += " ";
+                string += &stmt.accept(self);
+            }
+            string += " }";
+
+            string
+        } else {
+            unreachable!()
+        }
+    }
 }

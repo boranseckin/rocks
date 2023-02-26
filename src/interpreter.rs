@@ -10,7 +10,7 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter { environment: Environment::new() }
+        Interpreter { environment: Environment::new(None) }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
@@ -21,6 +21,17 @@ impl Interpreter {
 
     fn execute(&mut self, stmt: &Stmt) {
         stmt.accept(self)
+    }
+
+    fn execute_block(&mut self, statements: &Vec<Stmt>, environment: Environment) {
+        let previous = self.environment.clone();
+        self.environment = environment;
+
+        for statement in statements {
+            self.execute(statement);
+        }
+
+        self.environment = previous;
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Literal {
@@ -122,6 +133,15 @@ impl StmtVisitor<()> for Interpreter {
         };
 
         self.environment.define(&data.name.lexeme, value);
+    }
+
+    fn visit_block_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Block(data) = stmt else { unreachable!() };
+        self.execute_block(
+            &data.statements,
+            // TODO: Find a way to avoid this clone
+            Environment::new(Some(Box::new(self.environment.clone())))
+        );
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, BlockData};
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -23,7 +23,8 @@ macro_rules! matches {
 ///
 /// - Program     -> Decleration* EOF ;
 /// - Decleration -> VarDecl | Statement ;
-/// - Statement   -> ExprStmt | PrintStmt ;
+/// - Statement   -> ExprStmt | PrintStmt | Block ;
+/// - Block       -> "{" Decleration* "}" ;
 /// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - ExprStmt    -> Expression ";" ;
 /// - PrintStmt   -> "print" Expression ";" ;
@@ -95,7 +96,7 @@ impl Parser {
     }
 
     /// Consumes the next token if it is of the given type.
-    fn consume(&mut self, r#type: Type, message: &str) -> Result<&Token, ParseError> {
+    fn consume(&mut self, r#type: Type, message: &str) -> ParseResult<&Token> {
         if self.check(r#type) {
             return Ok(self.advance());
         }
@@ -151,6 +152,10 @@ impl Parser {
             return self.print_statement();
         }
 
+        if matches!(self, Type::LeftBrace) {
+            return Ok(Stmt::Block(BlockData { statements: self.block()? }));
+        }
+
         self.expression_statement()
     }
 
@@ -176,6 +181,21 @@ impl Parser {
         self.consume(Type::Semicolon, "Expect ';' after expression")?;
 
         Ok(Stmt::Expression(ExpressionData { expr }))
+    }
+
+    /// Parses a block statement.
+    fn block(&mut self) -> ParseResult<Vec<Stmt>> {
+        let mut statements = Vec::new();
+
+        while !self.check(Type::RightBrace) && !self.is_at_end() {
+            if let Some(stmt) = self.decleration() {
+                statements.push(stmt);
+            }
+        }
+
+        self.consume(Type::RightBrace, "Expect '}' after block")?;
+
+        Ok(statements)
     }
 
     /// Parses an assignment expression.
@@ -570,6 +590,31 @@ mod test {
                 name: Token::new(Type::Identifier, "a".to_string(), None, 1),
                 value: Box::new(Expr::Literal(Literal::Number(123.0)))
             })
+        );
+    }
+
+    #[test]
+    fn test_block_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::LeftBrace, "{".to_string(), None, 1),
+            Token::new(Type::Var, "var".to_string(), None, 1),
+            Token::new(Type::Identifier, "a".to_string(), None, 1),
+            Token::new(Type::Equal, "=".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::RightBrace, "}".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        parser.advance();
+        let stmt = parser.block().unwrap();
+
+        assert_eq!(
+            stmt,
+            vec![Stmt::Var(VarData {
+                name: Token::new(Type::Identifier, "a".to_string(), None, 1),
+                initializer: Some(Expr::Literal(Literal::Number(123.0)))
+            })]
         );
     }
 }
