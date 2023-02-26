@@ -5,6 +5,20 @@ use crate::stmt::{Stmt, PrintData, ExpressionData, VarData};
 
 type ParseResult = Result<Expr, ParseError>;
 
+/// Returns if the next token is any of the given types.
+macro_rules! matches {
+    ( $self:ident, $( $type:expr ),+ ) => {
+        {
+            if $( $self.check($type) ) ||* {
+                $self.advance();
+                true
+            } else {
+                false
+            }
+        }
+    }
+}
+
 /// Parses the tokens and returns the resulting expression.
 ///
 /// - Program     -> Decleration* EOF ;
@@ -79,18 +93,6 @@ impl Parser {
         self.previous()
     }
 
-    /// Returns if the next token is of any of the given types.
-    fn matches(&mut self, types: Vec<Type>) -> bool {
-        for r#type in types {
-            if self.check(r#type) {
-                self.advance();
-                return true;
-            }
-        }
-
-        false
-    }
-
     /// Consumes the next token if it is of the given type.
     fn consume(&mut self, r#type: Type, message: &str) -> Result<&Token, ParseError> {
         if self.check(r#type) {
@@ -105,7 +107,7 @@ impl Parser {
 
     /// Parses a decleration.
     fn decleration(&mut self) -> Option<Stmt> {
-        let statement = if self.matches(vec![Type::Var]) {
+        let statement = if matches!(self, Type::Var) {
             self.var_decleration()
         } else {
             self.statement()
@@ -126,7 +128,7 @@ impl Parser {
         let name = self.consume(Type::Identifier, "Expect variable name")?.clone();
 
         let mut initializer: Option<Expr> = None;
-        if self.matches(vec![Type::Equal]) {
+        if matches!(self, Type::Equal) {
             match self.expression() {
                 Ok(expr) => initializer = Some(expr),
                 Err(error) => return Err(error),
@@ -144,7 +146,7 @@ impl Parser {
 
     /// Parses a statement.
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        if self.matches(vec![Type::Print]) {
+        if matches!(self, Type::Print) {
             return self.print_statement();
         }
 
@@ -182,7 +184,7 @@ impl Parser {
             Err(error) => return Err(error),
         };
 
-        while self.matches(vec![Type::BangEqual, Type::EqualEqual]) {
+        while matches!(self, Type::BangEqual, Type::EqualEqual) {
             let operator = self.previous().clone();
             let right = match self.comparison() {
                 Ok(expr) => expr,
@@ -206,7 +208,7 @@ impl Parser {
             Err(error) => return Err(error),
         };
 
-        while self.matches(vec![Type::Greater, Type::GreaterEqual, Type::Less, Type::LessEqual]) {
+        while matches!(self, Type::Greater, Type::GreaterEqual, Type::Less, Type::LessEqual) {
             let operator = self.previous().clone();
             let right = match self.term() {
                 Ok(expr) => expr,
@@ -230,7 +232,7 @@ impl Parser {
             Err(error) => return Err(error),
         };
 
-        while self.matches(vec![Type::Minus, Type::Plus]) {
+        while matches!(self, Type::Minus, Type::Plus) {
             let operator = self.previous().clone();
             let right = match self.factor() {
                 Ok(expr) => expr,
@@ -254,7 +256,7 @@ impl Parser {
             Err(error) => return Err(error),
         };
 
-        while self.matches(vec![Type::Slash, Type::Star]) {
+        while matches!(self, Type::Slash, Type::Star) {
             let operator = self.previous().clone();
             let right = match self.unary() {
                 Ok(expr) => expr,
@@ -273,7 +275,7 @@ impl Parser {
 
     /// Parses a unary expression.
     fn unary(&mut self) -> ParseResult {
-        if self.matches(vec![Type::Bang, Type::Minus]) {
+        if matches!(self, Type::Bang, Type::Minus) {
             let operator = self.previous().clone();
             let right = match self.unary() {
                 Ok(expr) => expr,
@@ -291,30 +293,30 @@ impl Parser {
 
     /// Parses a primary expression.
     fn primary(&mut self) -> Result<Expr, ParseError> {
-        if self.matches(vec![Type::False]) {
+        if matches!(self, Type::False) {
             return Ok(Expr::Literal(Literal::Bool(false)));
         }
 
-        if self.matches(vec![Type::True]) {
+        if matches!(self, Type::True) {
             return Ok(Expr::Literal(Literal::Bool(true)));
         }
 
-        if self.matches(vec![Type::Null]) {
+        if matches!(self, Type::Null) {
             return Ok(Expr::Literal(Literal::Null));
         }
 
-        if self.matches(vec![Type::Number, Type::String]) {
+        if matches!(self, Type::Number, Type::String) {
             return Ok(Expr::Literal(self.previous().clone().literal
                 .expect("number or string to have a literal value")));
         }
 
-        if self.matches(vec![Type::Identifier]) {
+        if matches!(self, Type::Identifier) {
             return Ok(Expr::Variable(VariableData {
                 name: self.previous().clone()
             }))
         }
 
-        if self.matches(vec![Type::LeftParen]) {
+        if matches!(self, Type::LeftParen) {
             let expr = match self.expression() {
                 Ok(expr) => expr,
                 Err(error) => return Err(error),
@@ -361,6 +363,20 @@ impl Parser {
 mod test {
     use super::*;
     use crate::token::Type;
+
+    #[test]
+    fn test_matches() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Plus, "+".to_string(), None, 1),
+            Token::new(Type::Number, "456".to_string(), Some(Literal::Number(456.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        assert!(matches!(parser, Type::Number));
+        assert!(matches!(parser, Type::Plus));
+        assert!(matches!(parser, Type::Number));
+    }
 
     #[test]
     fn test_binary() {
