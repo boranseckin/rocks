@@ -1,10 +1,12 @@
-use std::{fs, io::{self, Write}, process};
+use std::{fs, process};
+use std::io::{self, Write};
 
 pub mod error;
 pub mod token;
 pub mod scanner;
 pub mod expr;
 pub mod stmt;
+pub mod environment;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
@@ -23,7 +25,7 @@ pub struct rlox {
 impl rlox {
     pub fn new() -> Self {
         rlox {
-            interpreter: interpreter::Interpreter {},
+            interpreter: interpreter::Interpreter::new(),
         }
     }
 

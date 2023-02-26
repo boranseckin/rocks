@@ -45,14 +45,42 @@ impl ExprVisitor<String> for ASTPrinter {
     fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> String {
         parenthesize!(self, "group", grouping.expr)
     }
+
+    fn visit_variable_expr(&mut self, variable: &crate::expr::VariableData) -> String {
+        variable.name.lexeme.clone()
+    }
 }
 
 impl StmtVisitor<String> for ASTPrinter {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) -> String {
-        parenthesize!(self, "expr", stmt)
+        if let Stmt::Expression(data) = stmt {
+            parenthesize!(self, "expr", data.expr)
+        } else {
+            unreachable!()
+        }
     }
 
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> String {
-        parenthesize!(self, "print", stmt)
+        if let Stmt::Print(data) = stmt {
+            parenthesize!(self, "print", data.expr)
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn visit_var_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::Var(data) = stmt {
+            let mut string = String::new();
+            string += "var ";
+            string += &data.name.lexeme;
+            if let Some(initializer) = &data.initializer {
+                string += " = ";
+                string += &initializer.accept(self);
+            }
+
+            string
+        } else {
+            unreachable!()
+        }
     }
 }

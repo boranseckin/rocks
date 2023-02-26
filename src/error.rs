@@ -6,6 +6,7 @@ pub trait rloxError {
     fn throw(&self);
 }
 
+#[derive(Debug)]
 pub struct ScanError {
     pub line: usize,
     pub location: usize,
@@ -56,6 +57,7 @@ impl rloxError for ParseError {
     }
 }
 
+#[derive(Debug)]
 pub struct RuntimeError {
     pub token: Token,
     pub message: String,

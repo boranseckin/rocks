@@ -1,19 +1,25 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData};
-use crate::stmt::{Stmt, PrintData, ExpressionData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData};
 
 type ParseResult = Result<Expr, ParseError>;
 
 /// Parses the tokens and returns the resulting expression.
 ///
-/// - Expression -> Equality ;
-/// - Equality   -> Comparison ( ( "!=" | "==" ) Comparison )* ;
-/// - Comparison -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
-/// - Term       -> Factor ( ( "+" | "-" ) Factor )* ;
-/// - Factor     -> Unary ( ( "*" | "/" ) Unary )* ;
-/// - Unary      -> ( "!" | "-" ) Unary | Primary ;
-/// - Primary    -> NUMBER | STRING | false | true | null | "(" expression ")" ;
+/// - Program     -> Decleration* EOF ;
+/// - Decleration -> VarDecl | Statement ;
+/// - Statement   -> ExprStmt | PrintStmt ;
+/// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
+/// - ExprStmt    -> Expression ";" ;
+/// - PrintStmt   -> "print" Expression ";" ;
+/// - Expression  -> Equality ;
+/// - Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
+/// - Comparison  -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
+/// - Term        -> Factor ( ( "+" | "-" ) Factor )* ;
+/// - Factor      -> Unary ( ( "*" | "/" ) Unary )* ;
+/// - Unary       -> ( "!" | "-" ) Unary | Primary ;
+/// - Primary     -> NUMBER | STRING | false | true | null | "(" Expression ")" | IDENTIFIER ;
 pub struct Parser {
     tokens: Vec<Token>,
     current: u32,
@@ -32,9 +38,8 @@ impl Parser {
         let mut statements = Vec::new();
 
         while !self.is_at_end() {
-            match self.statement() {
-                Ok(stmt) => statements.push(stmt),
-                Err(error) => error.throw(),
+            if let Some(stmt) = self.decleration() {
+                statements.push(stmt);
             }
         }
 
@@ -96,6 +101,46 @@ impl Parser {
             token: self.peek().clone(),
             message: message.to_string(),
         }) 
+    }
+
+    /// Parses a decleration.
+    fn decleration(&mut self) -> Option<Stmt> {
+        if self.matches(vec![Type::Var]) {
+            return match self.var_decleration() {
+                Ok(stmt) => Some(stmt),
+                Err(error) => {
+                    // TODO: handle error reporting
+                    // error.throw();
+                    self.synchronize();
+                    None
+                }
+            };
+        }
+
+        match self.statement() {
+            Ok(stmt) => Some(stmt),
+            Err(error) => {
+                // error.throw();
+                self.synchronize();
+                None
+            }
+        }
+    }
+
+    /// Parses a variable decleration.
+    fn var_decleration(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(Type::Identifier, "Expect variable name")?.clone();
+
+        let mut initializer: Option<Expr> = None;
+        if self.matches(vec![Type::Equal]) {
+            match self.expression() {
+                Ok(expr) => initializer = Some(expr),
+                Err(error) => return Err(error),
+            };
+        }
+
+        self.consume(Type::Semicolon, "Expect ';' after variable decleration")?;
+        Ok(Stmt::Var(VarData { name, initializer }))
     }
 
     /// Parses an expression.
@@ -269,6 +314,12 @@ impl Parser {
                 .expect("number or string to have a literal value")));
         }
 
+        if self.matches(vec![Type::Identifier]) {
+            return Ok(Expr::Variable(VariableData {
+                name: self.previous().clone()
+            }))
+        }
+
         if self.matches(vec![Type::LeftParen]) {
             let expr = match self.expression() {
                 Ok(expr) => expr,
@@ -289,7 +340,6 @@ impl Parser {
         })
     }
 
-    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 
@@ -399,7 +449,7 @@ mod test {
     }
 
     #[test]
-    fn test_stmt() {
+    fn test_print_stmt() {
         let mut parser = Parser::new(vec![
             Token::new(Type::Print, "print".to_string(), None, 1),
             Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
@@ -411,6 +461,60 @@ mod test {
 
         assert_eq!(stmt, Stmt::Print(PrintData {
             expr: Expr::Literal(Literal::Number(123.0))
+        }));
+    }
+
+    #[test]
+    fn test_expression_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.statement().unwrap();
+
+        assert_eq!(stmt, Stmt::Expression(ExpressionData {
+            expr: Expr::Literal(Literal::Number(123.0))
+        }));
+    }
+
+    #[test]
+    fn test_var_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Var, "var".to_string(), None, 1),
+            Token::new(Type::Identifier, "a".to_string(), None, 1),
+            Token::new(Type::Equal, "=".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        parser.advance();
+        let stmt = parser.var_decleration().unwrap();
+
+        assert_eq!(stmt, Stmt::Var(VarData {
+            name: Token::new(Type::Identifier, "a".to_string(), None, 1),
+            initializer: Some(Expr::Literal(Literal::Number(123.0)))
+        }));
+    }
+
+    #[test]
+    fn test_decleration() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Var, "var".to_string(), None, 1),
+            Token::new(Type::Identifier, "a".to_string(), None, 1),
+            Token::new(Type::Equal, "=".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.decleration().unwrap();
+
+        assert_eq!(stmt, Stmt::Var(VarData {
+            name: Token::new(Type::Identifier, "a".to_string(), None, 1),
+            initializer: Some(Expr::Literal(Literal::Number(123.0)))
         }));
     }
 }

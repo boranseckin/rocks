@@ -18,7 +18,12 @@ pub struct BinaryData {
 /// Represents a grouping expression's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct GroupingData {
-    pub expr: Box<Expr>
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct VariableData {
+    pub name: Token,
 }
 
 /// Represents an expression in the language.
@@ -28,6 +33,7 @@ pub enum Expr {
     Unary(UnaryData),
     Binary(BinaryData),
     Grouping(GroupingData),
+    Variable(VariableData),
 }
 
 impl Expr {
@@ -40,6 +46,7 @@ impl Expr {
             Unary(args) => visitor.visit_unary_expr(args),
             Binary(args) => visitor.visit_binary_expr(args),
             Grouping(args) => visitor.visit_grouping_expr(args),
+            Variable(args) => visitor.visit_variable_expr(args),
         }
     }
 }
@@ -49,6 +56,7 @@ pub trait ExprVisitor<T> {
     fn visit_unary_expr(&mut self, unary: &UnaryData) -> T;
     fn visit_binary_expr(&mut self, binary: &BinaryData) -> T;
     fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> T;
+    fn visit_variable_expr(&mut self, variable: &VariableData) -> T;
 }
 
 #[cfg(test)]
@@ -194,6 +202,83 @@ mod test {
         let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(- (group 53.6) 23.3)");
+    }
+
+    #[test]
+    fn accept_nested_grouping2() {
+        let expr = Expr::Binary(BinaryData {
+            left: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Literal(Literal::Number(53.6))),
+            })),
+            operator: Token::new(Type::Minus, String::from("-"), None, 1),
+            right: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Literal(Literal::Number(23.3))),
+            })),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "(- (group 53.6) (group 23.3))");
+    }
+
+    #[test]
+    fn accept_nested_grouping3() {
+        let expr = Expr::Binary(BinaryData {
+            left: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Binary(BinaryData {
+                    left: Box::new(Expr::Literal(Literal::Number(53.6))),
+                    operator: Token::new(Type::Minus, String::from("-"), None, 1),
+                    right: Box::new(Expr::Literal(Literal::Number(23.3))),
+                })),
+            })),
+            operator: Token::new(Type::Minus, String::from("-"), None, 1),
+            right: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Literal(Literal::Number(23.3))),
+            })),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "(- (group (- 53.6 23.3)) (group 23.3))");
+    }
+
+    #[test]
+    fn accept_nested_grouping4() {
+        let expr = Expr::Binary(BinaryData {
+            left: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Binary(BinaryData {
+                    left: Box::new(Expr::Literal(Literal::Number(53.6))),
+                    operator: Token::new(Type::Minus, String::from("-"), None, 1),
+                    right: Box::new(Expr::Literal(Literal::Number(23.3))),
+                })),
+            })),
+            operator: Token::new(Type::Minus, String::from("-"), None, 1),
+            right: Box::new(Expr::Grouping(GroupingData {
+                expr: Box::new(Expr::Binary(BinaryData {
+                    left: Box::new(Expr::Literal(Literal::Number(53.6))),
+                    operator: Token::new(Type::Minus, String::from("-"), None, 1),
+                    right: Box::new(Expr::Literal(Literal::Number(23.3))),
+                })),
+            })),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(
+            expr.accept(&mut ast),
+            "(- (group (- 53.6 23.3)) (group (- 53.6 23.3)))"
+        );
+    }
+
+    #[test]
+    fn accept_variable() {
+        let expr = Expr::Variable(VariableData {
+            name: Token::new(Type::Identifier, String::from("a"), None, 1),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "a");
     }
 }
 
