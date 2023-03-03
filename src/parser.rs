@@ -22,11 +22,11 @@ macro_rules! matches {
 /// Parses the tokens and returns the resulting expression.
 ///
 /// - Program     -> Decleration* EOF ;
-/// - Decleration -> VarDecl | Statement ;
+/// - Decleration -> Decleration | Statement ;
 /// - Statement   -> ExprStmt | IfStmt | PrintStmt | Block ;
 /// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - Block       -> "{" Decleration* "}" ;
-/// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
+/// - Decleration -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - ExprStmt    -> Expression ";" ;
 /// - PrintStmt   -> "print" Expression ";" ;
 /// - Expression  -> Assignment ;
