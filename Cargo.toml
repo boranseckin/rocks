@@ -1,10 +1,17 @@
 [package]
 name = "rlox"
+description = "A Rust Implementation of the Lox Programming Language"
 version = "0.1.0"
 edition = "2021"
+authors = ["Boran Seckin <boran@boranseckin.com>"]
+repository = "https://github.com/boranseckin/rlox"
+license = "MIT"
+
+[[bin]]
+name = "rlox"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 substring = "1.4.5"
-
