@@ -113,6 +113,15 @@ impl StmtVisitor<()> for Interpreter {
         self.evaluate(&data.expr);
     }
 
+    fn visit_if_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::If(data) = stmt else { unreachable!() };
+        if self.evaluate(&data.condition).as_bool() {
+            self.execute(&data.then_branch);
+        } else if let Some(else_branch) = &data.else_branch {
+            self.execute(else_branch);
+        }
+    }
+
     fn visit_print_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Print(data) = stmt else { unreachable!() };
         let value = self.evaluate(&data.expr);

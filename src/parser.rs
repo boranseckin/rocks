@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, BlockData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, BlockData, IfData};
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -23,7 +23,8 @@ macro_rules! matches {
 ///
 /// - Program     -> Decleration* EOF ;
 /// - Decleration -> VarDecl | Statement ;
-/// - Statement   -> ExprStmt | PrintStmt | Block ;
+/// - Statement   -> ExprStmt | IfStmt | PrintStmt | Block ;
+/// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - Block       -> "{" Decleration* "}" ;
 /// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - ExprStmt    -> Expression ";" ;
@@ -148,6 +149,10 @@ impl Parser {
 
     /// Parses a statement.
     fn statement(&mut self) -> ParseResult<Stmt> {
+        if matches!(self, Type::If) {
+            return self.if_statement();
+        }
+
         if matches!(self, Type::Print) {
             return self.print_statement();
         }
@@ -157,6 +162,21 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+
+    /// Parses an if statement.
+    fn if_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(Type::LeftParen, "Expect '(' after 'if'")?;
+        let condition = self.expression()?;
+        self.consume(Type::RightParen, "Expect ')' after if condition")?;
+
+        let then_branch = Box::new(self.statement()?);
+        let mut else_branch: Option<Box<Stmt>> = None;
+        if matches!(self, Type::Else) {
+            else_branch = Some(Box::new(self.statement()?));
+        }
+
+        Ok(Stmt::If(IfData { condition, then_branch, else_branch }))
     }
 
     /// Parses a print statement.
@@ -530,6 +550,72 @@ mod test {
 
         assert_eq!(stmt, Stmt::Expression(ExpressionData {
             expr: Expr::Literal(Literal::Number(123.0))
+        }));
+    }
+
+    #[test]
+    fn test_if_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::If, "if".to_string(), None, 1),
+            Token::new(Type::LeftParen, "(".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::RightParen, ")".to_string(), None, 1),
+            Token::new(Type::LeftBrace, "{".to_string(), None, 1),
+            Token::new(Type::Print, "print".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::RightBrace, "}".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.statement().unwrap();
+
+        assert_eq!(stmt, Stmt::If(IfData {
+            condition: Expr::Literal(Literal::Number(123.0)),
+            then_branch: Box::new(Stmt::Block(BlockData {
+                statements: vec![Stmt::Print(PrintData {
+                    expr: Expr::Literal(Literal::Number(123.0))
+                })],
+            })),
+            else_branch: None
+        }));
+    }
+
+    #[test]
+    fn test_if_stmt_with_else() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::If, "if".to_string(), None, 1),
+            Token::new(Type::LeftParen, "(".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::RightParen, ")".to_string(), None, 1),
+            Token::new(Type::LeftBrace, "{".to_string(), None, 1),
+            Token::new(Type::Print, "print".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::RightBrace, "}".to_string(), None, 1),
+            Token::new(Type::Else, "else".to_string(), None, 1),
+            Token::new(Type::LeftBrace, "{".to_string(), None, 1),
+            Token::new(Type::Print, "print".to_string(), None, 1),
+            Token::new(Type::Number, "456".to_string(), Some(Literal::Number(456.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::RightBrace, "}".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.statement().unwrap();
+
+        assert_eq!(stmt, Stmt::If(IfData {
+            condition: Expr::Literal(Literal::Number(123.0)),
+            then_branch: Box::new(Stmt::Block(BlockData {
+                statements: vec![Stmt::Print(PrintData {
+                    expr: Expr::Literal(Literal::Number(123.0))
+                })],
+            })),
+            else_branch: Some(Box::new(Stmt::Block(BlockData {
+                statements: vec![Stmt::Print(PrintData {
+                    expr: Expr::Literal(Literal::Number(456.0))
+                })],
+            })))
         }));
     }
 

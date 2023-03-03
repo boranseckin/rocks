@@ -64,6 +64,25 @@ impl StmtVisitor<String> for ASTPrinter {
         }
     }
 
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::If(data) = stmt {
+            let mut string = String::new();
+            string += "(if ";
+            string += &data.condition.accept(self);
+            string += " ";
+            string += &data.then_branch.accept(self);
+            if let Some(else_branch) = &data.else_branch {
+                string += " else ";
+                string += &else_branch.accept(self);
+            }
+            string += ")";
+
+            string
+        } else {
+            unreachable!()
+        }
+    }
+
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::Print(data) = stmt {
             parenthesize!(self, "print", data.expr)
@@ -75,12 +94,13 @@ impl StmtVisitor<String> for ASTPrinter {
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::Var(data) = stmt {
             let mut string = String::new();
-            string += "var ";
+            string += "(var ";
             string += &data.name.lexeme;
             if let Some(initializer) = &data.initializer {
                 string += " = ";
                 string += &initializer.accept(self);
             }
+            string += ")";
 
             string
         } else {
