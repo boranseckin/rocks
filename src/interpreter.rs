@@ -50,6 +50,18 @@ impl ExprVisitor<Literal> for Interpreter {
         literal.clone()
     }
 
+    fn visit_logical_expr(&mut self, logical: &expr::LogicalData) -> Literal {
+        let left = self.evaluate(&logical.left);
+
+        match logical.operator.r#type {
+            Type::Or => if left.as_bool() { return left },
+            Type::And => if !left.as_bool() { return left },
+            _ => unreachable!(),
+        };
+
+        self.evaluate(&logical.right)
+    }
+
     fn visit_unary_expr(&mut self, unary: &expr::UnaryData) -> Literal {
         let right = self.evaluate(&unary.expr);
 
@@ -164,6 +176,43 @@ mod test {
         let mut interpreter = Interpreter::new();
         let expr = Expr::Literal(Literal::Number(12.0));
         assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
+    }
+
+    #[test]
+    fn evaluate_logical() {
+        let mut interpreter = Interpreter::new();
+        let expr = Expr::Logical(expr::LogicalData {
+            left: Box::new(Expr::Literal(Literal::Bool(true))),
+            operator: Token::new(Type::And, String::from("and"), None, 1),
+            right: Box::new(Expr::Literal(Literal::Bool(true))),
+        });
+        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
+    }
+
+    #[test]
+    fn evaluate_logical_short_circuit() {
+        let mut interpreter = Interpreter::new();
+        let expr = Expr::Logical(expr::LogicalData {
+            left: Box::new(Expr::Literal(Literal::Bool(false))),
+            operator: Token::new(Type::And, String::from("and"), None, 1),
+            right: Box::new(Expr::Literal(Literal::Bool(true))),
+        });
+        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+    }
+
+    #[test]
+    fn evaluate_logical_nested() {
+        let mut interpreter = Interpreter::new();
+        let expr = Expr::Logical(expr::LogicalData {
+            left: Box::new(Expr::Literal(Literal::Bool(true))),
+            operator: Token::new(Type::Or, String::from("or"), None, 1),
+            right: Box::new(Expr::Logical(expr::LogicalData {
+                left: Box::new(Expr::Literal(Literal::Bool(true))),
+                operator: Token::new(Type::And, String::from("and"), None, 1),
+                right: Box::new(Expr::Literal(Literal::Bool(true))),
+            })),
+        });
+        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
     }
 
     #[test]

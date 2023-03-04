@@ -1,6 +1,6 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData};
 use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, BlockData, IfData};
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -30,7 +30,9 @@ macro_rules! matches {
 /// - ExprStmt    -> Expression ";" ;
 /// - PrintStmt   -> "print" Expression ";" ;
 /// - Expression  -> Assignment ;
-/// - Assignment  -> IDENTIFIER "=" Assignment | Equality ;
+/// - Assignment  -> IDENTIFIER "=" Assignment | LogicOr ;
+/// - LogicOr     -> LogicAnd ( "or" LogicAnd )* ;
+/// - LogicAnd    -> Equality ( "and" Equality )* ;
 /// - Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
 /// - Comparison  -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
 /// - Term        -> Factor ( ( "+" | "-" ) Factor )* ;
@@ -220,7 +222,7 @@ impl Parser {
 
     /// Parses an assignment expression.
     fn assignment(&mut self) -> ParseResult<Expr> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if matches!(self, Type::Equal) {
             let equals = self.previous().to_owned();
@@ -236,6 +238,40 @@ impl Parser {
                 token: equals,
                 message: "Invalid assignment target".to_string()
             }.throw();
+        }
+
+        Ok(expr)
+    }
+
+    /// Parses an or expression.
+    fn or(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.and()?;
+
+        while matches!(self, Type::Or) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Expr::Logical(LogicalData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right)
+            });
+        }
+
+        Ok(expr)
+    }
+
+    /// Parses and and expression.
+    fn and(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.equality()?;
+
+        while matches!(self, Type::And) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Expr::Logical(LogicalData {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            });
         }
 
         Ok(expr)
@@ -440,6 +476,66 @@ mod test {
         assert!(matches!(parser, Type::Number));
         assert!(matches!(parser, Type::Plus));
         assert!(matches!(parser, Type::Number));
+    }
+
+    #[test]
+    fn test_or() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Or, "or".to_string(), None, 1),
+            Token::new(Type::Number, "456".to_string(), Some(Literal::Number(456.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let expr = parser.expression().unwrap();
+
+        assert_eq!(expr, Expr::Logical(LogicalData {
+            left: Box::new(Expr::Literal(Literal::Number(123.0))),
+            operator: Token::new(Type::Or, "or".to_string(), None, 1),
+            right: Box::new(Expr::Literal(Literal::Number(456.0)))
+        }));
+    }
+
+    #[test]
+    fn test_and() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::And, "and".to_string(), None, 1),
+            Token::new(Type::Number, "456".to_string(), Some(Literal::Number(456.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let expr = parser.expression().unwrap();
+
+        assert_eq!(expr, Expr::Logical(LogicalData {
+            left: Box::new(Expr::Literal(Literal::Number(123.0))),
+            operator: Token::new(Type::And, "and".to_string(), None, 1),
+            right: Box::new(Expr::Literal(Literal::Number(456.0)))
+        }));
+    }
+
+    #[test]
+    fn test_nested_logic() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Or, "or".to_string(), None, 1),
+            Token::new(Type::Number, "456".to_string(), Some(Literal::Number(456.0)), 1),
+            Token::new(Type::And, "and".to_string(), None, 1),
+            Token::new(Type::Number, "789".to_string(), Some(Literal::Number(789.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let expr = parser.expression().unwrap();
+
+        assert_eq!(expr, Expr::Logical(LogicalData {
+            left: Box::new(Expr::Literal(Literal::Number(123.0))),
+            operator: Token::new(Type::Or, "or".to_string(), None, 1),
+            right: Box::new(Expr::Logical(LogicalData {
+                left: Box::new(Expr::Literal(Literal::Number(456.0))),
+                operator: Token::new(Type::And, "and".to_string(), None, 1),
+                right: Box::new(Expr::Literal(Literal::Number(789.0)))
+            }))
+        }));
     }
 
     #[test]

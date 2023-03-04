@@ -1,5 +1,12 @@
 use crate::token::{Token, Literal};
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct LogicalData {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
+}
+
 /// Represents a unary expression's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnaryData {
@@ -36,6 +43,7 @@ pub struct AssignData {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Literal(Literal), // Literal is defined in token.rs
+    Logical(LogicalData),
     Unary(UnaryData),
     Binary(BinaryData),
     Grouping(GroupingData),
@@ -50,6 +58,7 @@ impl Expr {
 
         match self {
             Literal(args) => visitor.visit_literal_expr(args),
+            Logical(args) => visitor.visit_logical_expr(args),
             Unary(args) => visitor.visit_unary_expr(args),
             Binary(args) => visitor.visit_binary_expr(args),
             Grouping(args) => visitor.visit_grouping_expr(args),
@@ -61,6 +70,7 @@ impl Expr {
 
 pub trait ExprVisitor<T> {
     fn visit_literal_expr(&mut self, literal: &Literal) -> T;
+    fn visit_logical_expr(&mut self, logical: &LogicalData) -> T;
     fn visit_unary_expr(&mut self, unary: &UnaryData) -> T;
     fn visit_binary_expr(&mut self, binary: &BinaryData) -> T;
     fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> T;
@@ -78,6 +88,28 @@ mod test {
         let expr = Expr::Literal(Literal::Number(12.0)); 
         let _literal = Literal::Number(12.0);
         assert!(matches!(expr, Expr::Literal(Literal::Number(_literal))))
+    }
+
+    #[test]
+    fn create_logical() {
+        let expr = Expr::Logical(LogicalData {
+            left: Box::new(Expr::Literal(Literal::Bool(true))),
+            operator: Token::new(Type::And, "and".to_string(), None, 1),
+            right: Box::new(Expr::Literal(Literal::Bool(false))),
+        });
+
+        let _literal = Literal::Bool(true);
+        let _literal2 = Literal::Bool(false);
+
+        if let Expr::Logical(data) = expr {
+            assert_eq!(data.operator.r#type, Type::And);
+            assert_eq!(data.operator.lexeme, "and");
+            assert_eq!(data.operator.line, 1);
+            assert!(matches!(*data.left, Expr::Literal(Literal::Bool(_literal))));
+            assert!(matches!(*data.right, Expr::Literal(Literal::Bool(_literal2))));
+        } else {
+            panic!("Expected logical expression");
+        }
     }
 
     #[test]
@@ -144,6 +176,19 @@ mod test {
 
         assert_eq!(expr_num.accept(&mut ast), "12.4");
         assert_eq!(expr_str.accept(&mut ast), "hello");
+    }
+
+    #[test]
+    fn accept_logical() {
+        let expr = Expr::Logical(LogicalData {
+            left: Box::new(Expr::Literal(Literal::Bool(true))),
+            operator: Token::new(Type::Or, String::from("or"), None, 1),
+            right: Box::new(Expr::Literal(Literal::Bool(false))),
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "(or true false)");
     }
 
     #[test]

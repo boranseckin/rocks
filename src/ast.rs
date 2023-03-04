@@ -1,4 +1,4 @@
-use crate::expr::{ExprVisitor, UnaryData, BinaryData, GroupingData, Expr};
+use crate::expr::{ExprVisitor, UnaryData, BinaryData, GroupingData, Expr, LogicalData};
 use crate::stmt::{StmtVisitor, Stmt};
 use crate::token::Literal;
 
@@ -32,6 +32,10 @@ impl ASTPrinter {
 impl ExprVisitor<String> for ASTPrinter {
     fn visit_literal_expr(&mut self, literal: &Literal) -> String {
         literal.to_string() // Uses fmt::Display impl for Literal
+    }
+
+    fn visit_logical_expr(&mut self, logical: &LogicalData) -> String {
+        parenthesize!(self, &logical.operator.lexeme, &logical.left, &logical.right)
     }
 
     fn visit_unary_expr(&mut self, unary: &UnaryData) -> String {
