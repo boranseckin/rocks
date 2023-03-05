@@ -619,6 +619,66 @@ mod test {
     }
 
     #[test]
+    fn test_equality() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "1".to_string(), Some(Literal::Number(1.0)), 1),
+            Token::new(Type::BangEqual, "!=".to_string(), None, 1),
+            Token::new(Type::Number, "2".to_string(), Some(Literal::Number(2.0)), 1),
+            Token::new(Type::EqualEqual, "==".to_string(), None, 1),
+            Token::new(Type::Number, "3".to_string(), Some(Literal::Number(3.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let expr = parser.equality().unwrap();
+
+        assert_eq!(expr, Expr::Binary(BinaryData {
+            left: Box::new(Expr::Binary(BinaryData {
+                left: Box::new(Expr::Literal(Literal::Number(1.0))),
+                operator: Token::new(Type::BangEqual, "!=".to_string(), None, 1),
+                right: Box::new(Expr::Literal(Literal::Number(2.0)))
+            })),
+            operator: Token::new(Type::EqualEqual, "==".to_string(), None, 1),
+            right: Box::new(Expr::Literal(Literal::Number(3.0)))
+        }));
+    }
+
+    #[test]
+    fn test_comparison() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::Number, "1".to_string(), Some(Literal::Number(1.0)), 1),
+            Token::new(Type::Greater, ">".to_string(), None, 1),
+            Token::new(Type::Number, "2".to_string(), Some(Literal::Number(2.0)), 1),
+            Token::new(Type::Less, "<".to_string(), None, 1),
+            Token::new(Type::Number, "3".to_string(), Some(Literal::Number(3.0)), 1),
+            Token::new(Type::GreaterEqual, ">=".to_string(), None, 1),
+            Token::new(Type::Number, "4".to_string(), Some(Literal::Number(4.0)), 1),
+            Token::new(Type::LessEqual, "<=".to_string(), None, 1),
+            Token::new(Type::Number, "5".to_string(), Some(Literal::Number(5.0)), 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let expr = parser.comparison().unwrap();
+
+        assert_eq!(expr, Expr::Binary(BinaryData {
+            left: Box::new(Expr::Binary(BinaryData {
+                left: Box::new(Expr::Binary(BinaryData {
+                    left: Box::new(Expr::Binary(BinaryData {
+                        left: Box::new(Expr::Literal(Literal::Number(1.0))),
+                        operator: Token::new(Type::Greater, ">".to_string(), None, 1),
+                        right: Box::new(Expr::Literal(Literal::Number(2.0)))
+                    })),
+                    operator: Token::new(Type::Less, "<".to_string(), None, 1),
+                    right: Box::new(Expr::Literal(Literal::Number(3.0)))
+                })),
+                operator: Token::new(Type::GreaterEqual, ">=".to_string(), None, 1),
+                right: Box::new(Expr::Literal(Literal::Number(4.0)))
+            })),
+            operator: Token::new(Type::LessEqual, "<=".to_string(), None, 1),
+            right: Box::new(Expr::Literal(Literal::Number(5.0))),
+        }));
+    }
+
+    #[test]
     fn test_print_stmt() {
         let mut parser = Parser::new(vec![
             Token::new(Type::Print, "print".to_string(), None, 1),
@@ -800,4 +860,3 @@ mod test {
         );
     }
 }
-

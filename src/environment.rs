@@ -64,6 +64,13 @@ mod tests {
     use crate::token::Type;
 
     #[test]
+    fn default() {
+        let env = Environment::default();
+        assert!(env.enclosing.is_none());
+        assert!(env.variables.is_empty());
+    }
+
+    #[test]
     fn test_define() {
         let mut env = Environment::new(None);
         env.define("a", Literal::Number(1.0));

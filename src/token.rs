@@ -174,5 +174,38 @@ mod test {
 
         assert_eq!(format!("{literal}"), "12.0");
     }
+
+    #[test]
+    fn from_str_literal() {
+        let literal = Literal::from("12.0");
+
+        assert_eq!(literal, Literal::String(String::from("12.0")));
+    }
+
+    #[test]
+    fn from_string_literal() {
+        let literal = Literal::from(String::from("12.0"));
+
+        assert_eq!(literal, Literal::String(String::from("12.0")));
+    }
+
+    #[test]
+    fn from_f32_literal() {
+        let literal = Literal::from(12.0);
+
+        assert_eq!(literal, Literal::Number(12.0));
+    }
+
+    #[test]
+    fn display_token() {
+        let token = Token::new(
+            Type::And,
+            "and".to_string(),
+            None,
+            1
+        );
+
+        assert_eq!(format!("{token}"), "And and None @ 1");
+    }
 }
 
