@@ -112,6 +112,14 @@ impl StmtVisitor<String> for ASTPrinter {
         }
     }
 
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::While(data) = stmt {
+            parenthesize!(self, "while", data.condition, data.body)
+        } else {
+            unreachable!()
+        }
+    }
+
     fn visit_block_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::Block(data) = stmt {
             let mut string = String::new();

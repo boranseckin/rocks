@@ -59,7 +59,7 @@ impl Default for Environment {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
     use crate::token::Type;
 

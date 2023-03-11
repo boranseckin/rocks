@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type, Literal};
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, BlockData, IfData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData};
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -23,7 +23,8 @@ macro_rules! matches {
 ///
 /// - Program     -> Decleration* EOF ;
 /// - Decleration -> Decleration | Statement ;
-/// - Statement   -> ExprStmt | IfStmt | PrintStmt | Block ;
+/// - Statement   -> ExprStmt | IfStmt | PrintStmt | WhileStmt | Block ;
+/// - WhileStmt   -> "while" "(" Expression ")" Statement ;
 /// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - Block       -> "{" Decleration* "}" ;
 /// - Decleration -> "var" IDENTIFIER ( "=" Expression )? ";" ;
@@ -144,6 +145,19 @@ impl Parser {
         Ok(Stmt::Var(VarData { name, initializer }))
     }
 
+    /// Parses a while statement.
+    fn while_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(Type::LeftParen, "Expect '(' after while.")?;
+        let condition = self.expression()?;
+        self.consume(Type::RightParen, "Expect ')' after condition.")?;
+        let body = self.statement()?;
+
+        Ok(Stmt::While(WhileData {
+            condition,
+            body: Box::new(body),
+        }))
+    }
+
     /// Parses an expression.
     fn expression(&mut self) -> ParseResult<Expr> {
         self.assignment()
@@ -157,6 +171,10 @@ impl Parser {
 
         if matches!(self, Type::Print) {
             return self.print_statement();
+        }
+
+        if matches!(self, Type::While) {
+            return self.while_statement();
         }
 
         if matches!(self, Type::LeftBrace) {
@@ -833,6 +851,33 @@ mod test {
                 value: Box::new(Expr::Literal(Literal::Number(123.0)))
             })
         );
+    }
+
+    #[test]
+    fn test_while_stmt() {
+        let mut parser = Parser::new(vec![
+            Token::new(Type::While, "while".to_string(), None, 1),
+            Token::new(Type::LeftParen, "(".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::RightParen, ")".to_string(), None, 1),
+            Token::new(Type::LeftBrace, "{".to_string(), None, 1),
+            Token::new(Type::Print, "print".to_string(), None, 1),
+            Token::new(Type::Number, "123".to_string(), Some(Literal::Number(123.0)), 1),
+            Token::new(Type::Semicolon, ";".to_string(), None, 1),
+            Token::new(Type::RightBrace, "}".to_string(), None, 1),
+            Token::new(Type::EOF, "".to_string(), None, 1)
+        ]);
+
+        let stmt = parser.statement().unwrap();
+
+        assert_eq!(stmt, Stmt::While(WhileData {
+            condition: Expr::Literal(Literal::Number(123.0)),
+            body: Box::new(Stmt::Block(BlockData {
+                statements: vec![Stmt::Print(PrintData {
+                    expr: Expr::Literal(Literal::Number(123.0))
+                })],
+            }))
+        }));
     }
 
     #[test]

@@ -156,6 +156,13 @@ impl StmtVisitor<()> for Interpreter {
         self.environment.define(&data.name.lexeme, value);
     }
 
+    fn visit_while_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::While(data) = stmt else { unreachable!() };
+        while self.evaluate(&data.condition).as_bool() {
+            self.execute(&data.body);
+        }
+    }
+
     fn visit_block_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Block(data) = stmt else { unreachable!() };
         self.execute_block(

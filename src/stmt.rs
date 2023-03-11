@@ -27,6 +27,12 @@ pub struct VarData {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct WhileData {
+    pub condition: Expr,
+    pub body: Box<Stmt>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct BlockData {
     pub statements: Vec<Stmt>,
 }
@@ -38,6 +44,7 @@ pub enum Stmt {
     If(IfData),
     Print(PrintData),
     Var(VarData),
+    While(WhileData),
     Block(BlockData),
 }
 
@@ -49,6 +56,7 @@ impl Stmt {
             Stmt::If(_) => visitor.visit_if_stmt(self),
             Stmt::Print(_) => visitor.visit_print_stmt(self),
             Stmt::Var(_) => visitor.visit_var_stmt(self),
+            Stmt::While(_) => visitor.visit_while_stmt(self),
             Stmt::Block(_) => visitor.visit_block_stmt(self),
         }
     }
@@ -59,11 +67,12 @@ pub trait StmtVisitor<T> {
     fn visit_if_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> T;
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_block_stmt(&mut self, stmt: &Stmt) -> T;
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
     use crate::token::{Literal, Type};
     use crate::ast::ASTPrinter;
@@ -149,6 +158,22 @@ mod tests {
     }
 
     #[test]
+    fn test_while_stmt() {
+        let condition = Expr::Literal(Literal::Bool(true));
+        let body = Stmt::Expression(ExpressionData {
+            expr: Expr::Literal(Literal::Number(2.0)),
+        });
+        let stmt = Stmt::While(WhileData {
+            condition,
+            body: Box::new(body),
+        });
+
+        let mut ast = ASTPrinter;
+
+        assert_eq!(stmt.accept(&mut ast), "(while true (expr 2))");
+    }
+
+    #[test]
     fn test_block_stmt() {
         let stmts = vec![
             Stmt::Expression(ExpressionData {
@@ -165,4 +190,3 @@ mod tests {
         assert_eq!(stmt.accept(&mut ast), "{ (expr 1) (print 2) }")
     }
 }
-
