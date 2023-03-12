@@ -1,3 +1,6 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use crate::environment::Environment;
 use crate::error::{rloxError, RuntimeError, self};
 use crate::expr::{self, Expr, ExprVisitor};
@@ -5,12 +8,13 @@ use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Literal, Type};
 
 pub struct Interpreter {
-    environment: Environment,
+    // Interior mutability with multiple owners
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter { environment: Environment::new(None) }
+        Interpreter { environment: Rc::new(RefCell::new(Environment::new(None))) }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
@@ -19,11 +23,16 @@ impl Interpreter {
         }
     }
 
+    // TODO: Add return result
     fn execute(&mut self, stmt: &Stmt) {
         stmt.accept(self)
     }
 
-    fn execute_block(&mut self, statements: &Vec<Stmt>, environment: Environment) {
+    fn execute_block(
+        &mut self,
+        statements: &Vec<Stmt>,
+        environment: Rc<RefCell<Environment>>
+    ) {
         let previous = self.environment.clone();
         self.environment = environment;
 
@@ -106,15 +115,18 @@ impl ExprVisitor<Literal> for Interpreter {
     }
 
     fn visit_variable_expr(&mut self, variable: &expr::VariableData) -> Literal {
-        self.environment.get(&variable.name).unwrap_or_else(|error| {
-            error.throw();
-            Literal::Null
-        })
+        self.environment
+            .borrow()
+            .get(&variable.name)
+            .unwrap_or_else(|error| {
+                error.throw();
+                Literal::Null
+            })
     }
 
     fn visit_assign_expr(&mut self, assign: &expr::AssignData) -> Literal {
         let value = self.evaluate(&assign.value);
-        self.environment.assign(&assign.name, value.to_owned());
+        self.environment.borrow_mut().assign(&assign.name, value.to_owned());
         value
     }
 }
@@ -153,7 +165,7 @@ impl StmtVisitor<()> for Interpreter {
             None => Literal::Null,
         };
 
-        self.environment.define(&data.name.lexeme, value);
+        self.environment.borrow_mut().define(&data.name.lexeme, value);
     }
 
     fn visit_while_stmt(&mut self, stmt: &Stmt) {
@@ -167,8 +179,7 @@ impl StmtVisitor<()> for Interpreter {
         let Stmt::Block(data) = stmt else { unreachable!() };
         self.execute_block(
             &data.statements,
-            // TODO: Find a way to avoid this clone
-            Environment::new(Some(Box::new(self.environment.clone())))
+            Rc::new(RefCell::new(Environment::new(Some(Rc::clone(&self.environment)))))
         );
     }
 }
@@ -365,14 +376,14 @@ mod test {
     #[test]
     fn evaluate_assign() {
         let mut interpreter = Interpreter::new();
-        interpreter.environment.define("a", Literal::Number(0.0));
+        interpreter.environment.borrow_mut().define("a", Literal::Number(0.0));
         let expr = Expr::Assign(expr::AssignData {
             name: Token::new(Type::Identifier, String::from("a"), None, 1),
             value: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
         assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
         assert_eq!(
-            interpreter.environment.get(&Token::new(Type::Identifier, String::from("a"), None, 1)).unwrap(),
+            interpreter.environment.borrow().get(&Token::new(Type::Identifier, String::from("a"), None, 1)).unwrap(),
             Literal::Number(12.0)
         );
     }

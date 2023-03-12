@@ -1,16 +1,18 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::token::{Literal, Token};
 use crate::error::{RuntimeError, rloxError};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    pub enclosing: Option<Box<Environment>>,
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
     pub variables: HashMap<String, Literal>,
 }
 
 impl Environment {
-    pub fn new(enclosing: Option<Box<Environment>>) -> Self {
+    pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
         Environment {
             enclosing,
             variables: HashMap::new(),
@@ -28,7 +30,7 @@ impl Environment {
         }
 
         if let Some(enclosing) = &mut self.enclosing {
-            enclosing.assign(name, value);
+            enclosing.borrow_mut().assign(name, value);
             return
         }
 
@@ -44,7 +46,7 @@ impl Environment {
         }
 
         if let Some(enclosing) = &self.enclosing {
-            return enclosing.get(name);
+            return enclosing.borrow().get(name);
         }
 
         let message = format!("Undefined variable '{}'", name.lexeme);
@@ -97,7 +99,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("c", Literal::Number(3.0));
         env2.define("d", Literal::Number(4.0));
 
@@ -110,7 +112,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("c", Literal::Number(3.0));
         env2.define("d", Literal::Number(4.0));
 
@@ -126,7 +128,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("a", Literal::Number(3.0));
         env2.define("b", Literal::Number(4.0));
 
@@ -153,7 +155,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("c", Literal::Number(3.0));
         env2.define("d", Literal::Number(4.0));
 
@@ -166,7 +168,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("c", Literal::Number(3.0));
         env2.define("d", Literal::Number(4.0));
 
@@ -187,7 +189,7 @@ mod test {
         env.define("a", Literal::Number(1.0));
         env.define("b", Literal::Number(2.0));
 
-        let mut env2 = Environment::new(Some(Box::new(env)));
+        let mut env2 = Environment::new(Some(Rc::new(RefCell::new(env))));
         env2.define("a", Literal::Number(3.0));
         env2.define("b", Literal::Number(4.0));
 

@@ -23,7 +23,8 @@ macro_rules! matches {
 ///
 /// - Program     -> Decleration* EOF ;
 /// - Decleration -> Decleration | Statement ;
-/// - Statement   -> ExprStmt | IfStmt | PrintStmt | WhileStmt | Block ;
+/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | WhileStmt | Block ;
+/// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
 /// - WhileStmt   -> "while" "(" Expression ")" Statement ;
 /// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - Block       -> "{" Decleration* "}" ;
@@ -165,6 +166,10 @@ impl Parser {
 
     /// Parses a statement.
     fn statement(&mut self) -> ParseResult<Stmt> {
+        if matches!(self, Type::For) {
+            return self.for_statement();
+        }
+
         if matches!(self, Type::If) {
             return self.if_statement();
         }
@@ -182,6 +187,65 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+
+    /// Parses a for statement.
+    fn for_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(Type::LeftParen, "Expect '(' after 'for'")?;
+
+        let initializer: Option<Stmt>;
+        if matches!(self, Type::Semicolon) {
+            initializer = None;
+        } else if matches!(self, Type::Var) {
+            initializer = Some(self.var_decleration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        let condition = match !self.check(Type::Semicolon) {
+            true => Some(self.expression()?),
+            false => None,
+        };
+        self.consume(Type::Semicolon, "Expect ';' after loop condition")?;
+
+        let increment = match !self.check(Type::RightParen) {
+            true => Some(self.expression()?),
+            false => None,
+        };
+        self.consume(Type::RightParen, "Expect ')' after loop clauses")?;
+
+        let mut body = self.statement()?;
+
+        // Execute the increment after the body.
+        if let Some(increment) = increment {
+            body = Stmt::Block(BlockData {
+                statements: vec![
+                    body,
+                    Stmt::Expression(ExpressionData {
+                        expr: increment
+                    }),
+                ],
+            });
+        }
+
+        // Wrap the body into a while loop.
+        // If there is no condition, use true.
+        body = Stmt::While(WhileData {
+            condition: condition.unwrap_or(Expr::Literal(Literal::Bool(true))),
+            body: Box::new(body),
+        });
+
+        // Add the initializer before the loop if there is one.
+        if let Some(initializer) = initializer {
+            body = Stmt::Block(BlockData {
+                statements: vec![
+                    initializer,
+                    body,
+                ],
+            });
+        }
+
+        Ok(body)
     }
 
     /// Parses an if statement.
