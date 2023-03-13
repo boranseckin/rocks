@@ -85,7 +85,7 @@ impl rloxError for RuntimeError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::token::Literal;
+    use crate::literal::Literal;
 
     #[test]
     fn scan_error() {

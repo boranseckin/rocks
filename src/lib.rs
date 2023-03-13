@@ -10,6 +10,9 @@ pub mod environment;
 pub mod parser;
 pub mod ast;
 pub mod interpreter;
+pub mod literal;
+pub mod object;
+pub mod function;
 
 use parser::Parser;
 use scanner::Scanner;

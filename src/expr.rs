@@ -1,4 +1,5 @@
-use crate::token::{Token, Literal};
+use crate::token::Token;
+use crate::literal::Literal;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct LogicalData {
@@ -39,6 +40,13 @@ pub struct AssignData {
     pub value: Box<Expr>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct CallData {
+    pub callee: Box<Expr>,
+    pub paren: Token,
+    pub arguments: Vec<Expr>,
+}
+
 /// Represents an expression in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
@@ -49,6 +57,7 @@ pub enum Expr {
     Grouping(GroupingData),
     Variable(VariableData),
     Assign(AssignData),
+    Call(CallData),
 }
 
 impl Expr {
@@ -64,6 +73,7 @@ impl Expr {
             Grouping(args) => visitor.visit_grouping_expr(args),
             Variable(args) => visitor.visit_variable_expr(args),
             Assign(args) => visitor.visit_assign_expr(args),
+            Call(args) => visitor.visit_call_expr(args),
         }
     }
 }
@@ -76,6 +86,7 @@ pub trait ExprVisitor<T> {
     fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> T;
     fn visit_variable_expr(&mut self, variable: &VariableData) -> T;
     fn visit_assign_expr(&mut self, assign: &AssignData) -> T;
+    fn visit_call_expr(&mut self, call: &CallData) -> T;
 }
 
 #[cfg(test)]
@@ -345,6 +356,36 @@ mod test {
         let mut ast = ASTPrinter {};
 
         assert_eq!(expr.accept(&mut ast), "(= a 23.3)");
+    }
+
+    #[test]
+    fn accept_call() {
+        let expr = Expr::Call(CallData {
+            callee: Box::new(Expr::Variable(VariableData {
+                name: Token::new(Type::Identifier, String::from("a"), None, 1),
+            })),
+            paren: Token::new(Type::RightParen, String::from(")"), None, 1),
+            arguments: vec![],
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "a()");
+    }
+
+    #[test]
+    fn accept_call_with_argument() {
+        let expr = Expr::Call(CallData {
+            callee: Box::new(Expr::Variable(VariableData {
+                name: Token::new(Type::Identifier, String::from("a"), None, 1),
+            })),
+            paren: Token::new(Type::RightParen, String::from(")"), None, 1),
+            arguments: vec![Expr::Literal(Literal::Number(23.3))],
+        });
+
+        let mut ast = ASTPrinter {};
+
+        assert_eq!(expr.accept(&mut ast), "a(23.3)");
     }
 }
 

@@ -4,17 +4,27 @@ use std::cell::RefCell;
 use crate::environment::Environment;
 use crate::error::{rloxError, RuntimeError, self};
 use crate::expr::{self, Expr, ExprVisitor};
+use crate::function::NativeFunction;
+use crate::object::{Object, Callable};
 use crate::stmt::{Stmt, StmtVisitor};
-use crate::token::{Literal, Type};
+use crate::token::Type;
+use crate::literal::Literal;
 
 pub struct Interpreter {
     // Interior mutability with multiple owners
     environment: Rc<RefCell<Environment>>,
+    pub(crate) globals: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter { environment: Rc::new(RefCell::new(Environment::new(None))) }
+        let globals = Rc::new(RefCell::new(Environment::default()));
+
+        NativeFunction::get_globals().iter().for_each(|native| {
+            globals.borrow_mut().define(&native.name.lexeme, Object::from(native.clone()));
+        });
+
+        Interpreter { environment: globals.clone(), globals }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
@@ -23,12 +33,11 @@ impl Interpreter {
         }
     }
 
-    // TODO: Add return result
     fn execute(&mut self, stmt: &Stmt) {
         stmt.accept(self)
     }
 
-    fn execute_block(
+    pub fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
         environment: Rc<RefCell<Environment>>
@@ -43,7 +52,7 @@ impl Interpreter {
         self.environment = previous;
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Literal {
+    fn evaluate(&mut self, expr: &Expr) -> Object {
         expr.accept(self)
     }
 }
@@ -54,12 +63,12 @@ impl Default for Interpreter {
     }
 }
 
-impl ExprVisitor<Literal> for Interpreter {
-    fn visit_literal_expr(&mut self, literal: &Literal) -> Literal {
-        literal.clone()
+impl ExprVisitor<Object> for Interpreter {
+    fn visit_literal_expr(&mut self, literal: &Literal) -> Object {
+        Object::Literal(literal.clone())
     }
 
-    fn visit_logical_expr(&mut self, logical: &expr::LogicalData) -> Literal {
+    fn visit_logical_expr(&mut self, logical: &expr::LogicalData) -> Object {
         let left = self.evaluate(&logical.left);
 
         match logical.operator.r#type {
@@ -71,60 +80,110 @@ impl ExprVisitor<Literal> for Interpreter {
         self.evaluate(&logical.right)
     }
 
-    fn visit_unary_expr(&mut self, unary: &expr::UnaryData) -> Literal {
+    fn visit_unary_expr(&mut self, unary: &expr::UnaryData) -> Object {
         let right = self.evaluate(&unary.expr);
 
         match unary.operator.r#type {
-            Type::Minus => Literal::Number(-right.as_number()),
-            Type::Bang => Literal::Bool(!right.as_bool()),
+            Type::Minus => Object::Literal(Literal::Number(-right.as_number())),
+            Type::Bang => Object::Literal(Literal::Bool(!right.as_bool())),
             _ => unreachable!(),
         }
     }
 
-    fn visit_binary_expr(&mut self, binary: &expr::BinaryData) -> Literal {
+    fn visit_binary_expr(&mut self, binary: &expr::BinaryData) -> Object {
         let left = self.evaluate(&binary.left);
         let right = self.evaluate(&binary.right);
 
         match binary.operator.r#type {
-            Type::Greater       => Literal::Bool(left.as_number() > right.as_number()),
-            Type::GreaterEqual  => Literal::Bool(left.as_number() >= right.as_number()),
-            Type::Less          => Literal::Bool(left.as_number() < right.as_number()),
-            Type::LessEqual     => Literal::Bool(left.as_number() <= right.as_number()),
-            Type::EqualEqual    => Literal::Bool(left.as_number() == right.as_number()),
-            Type::BangEqual     => Literal::Bool(left.as_number() != right.as_number()),
-            Type::Slash         => Literal::Number(left.as_number() / right.as_number()),
-            Type::Star          => Literal::Number(left.as_number() * right.as_number()),
-            Type::Minus         => Literal::Number(left.as_number() - right.as_number()),
+            Type::Greater       => Object::from(left.as_number() > right.as_number()),
+            Type::GreaterEqual  => Object::from(left.as_number() >= right.as_number()),
+            Type::Less          => Object::from(left.as_number() < right.as_number()),
+            Type::LessEqual     => Object::from(left.as_number() <= right.as_number()),
+            Type::EqualEqual    => Object::from(left.as_number() == right.as_number()),
+            Type::BangEqual     => Object::from(left.as_number() != right.as_number()),
+            Type::Slash         => Object::from(left.as_number() / right.as_number()),
+            Type::Star          => Object::from(left.as_number() * right.as_number()),
+            Type::Minus         => Object::from(left.as_number() - right.as_number()),
             Type::Plus          => match (left, right) {
-                (Literal::Number(l), Literal::Number(r)) => Literal::Number(l + r),
-                (Literal::String(l), Literal::String(r)) => Literal::String(l + &r),
+                (Object::Literal(Literal::Number(l)), Object::Literal(Literal::Number(r))) => Object::from(l + r),
+                (Object::Literal(Literal::String(l)), Object::Literal(Literal::String(r))) => Object::from(l + &r),
                 _ => {
                     RuntimeError {
                         token: binary.operator.clone(),
                         message: "Tried to add two unsupported types".to_string(),
                     }.throw();
-                    Literal::Null
+                    Object::from(Literal::Null)
                 }
             },
             _ => unreachable!(),
         }
     }
 
-    fn visit_grouping_expr(&mut self, grouping: &expr::GroupingData) -> Literal {
+    fn visit_call_expr(&mut self, call: &expr::CallData) -> Object {
+        let callee = self.evaluate(call.callee.as_ref());
+
+        // TODO: Try to avoid clone here
+        let arguments: Vec<Object> = call.arguments
+            .iter()
+            .map(|expr| self.evaluate(expr))
+            .collect();
+
+        match callee {
+            Object::Function(function) => {
+                if arguments.len() != function.arity() {
+                    RuntimeError {
+                        token: call.paren.clone(),
+                        message: format!("Expected {} arguments but got {}", function.arity(), arguments.len()),
+                    }.throw();
+                    return Object::from(Literal::Null);
+                }
+
+                function.call(self, arguments).unwrap_or_else(|mut error| {
+                    error.token = call.paren.clone();
+                    error.throw();
+                    Object::from(Literal::Null)
+                })
+            },
+            Object::NativeFunction(function) => {
+                if arguments.len() != function.arity() {
+                    RuntimeError {
+                        token: call.paren.clone(),
+                        message: format!("Expected {} arguments but got {}", function.arity(), arguments.len()),
+                    }.throw();
+                    return Object::from(Literal::Null);
+                }
+
+                function.call(self, arguments).unwrap_or_else(|mut error| {
+                    error.token = call.paren.clone();
+                    error.throw();
+                    Object::from(Literal::Null)
+                })
+            },
+            _ => {
+                RuntimeError {
+                    token: call.paren.clone(),
+                    message: "Can only call functions and classes".to_string(),
+                }.throw();
+                Object::from(Literal::Null)
+            }
+        }
+    }
+
+    fn visit_grouping_expr(&mut self, grouping: &expr::GroupingData) -> Object {
         self.evaluate(&grouping.expr)
     }
 
-    fn visit_variable_expr(&mut self, variable: &expr::VariableData) -> Literal {
+    fn visit_variable_expr(&mut self, variable: &expr::VariableData) -> Object {
         self.environment
             .borrow()
             .get(&variable.name)
             .unwrap_or_else(|error| {
                 error.throw();
-                Literal::Null
+                Object::from(Literal::Null)
             })
     }
 
-    fn visit_assign_expr(&mut self, assign: &expr::AssignData) -> Literal {
+    fn visit_assign_expr(&mut self, assign: &expr::AssignData) -> Object {
         let value = self.evaluate(&assign.value);
         self.environment.borrow_mut().assign(&assign.name, value.to_owned());
         value
@@ -135,6 +194,11 @@ impl StmtVisitor<()> for Interpreter {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Expression(data) = stmt else { unreachable!() };
         self.evaluate(&data.expr);
+    }
+
+    fn visit_function_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Function(function) = stmt else { unreachable!() };
+        self.environment.borrow_mut().define(&function.name.lexeme, Object::from(function.to_owned()));
     }
 
     fn visit_if_stmt(&mut self, stmt: &Stmt) {
@@ -162,7 +226,7 @@ impl StmtVisitor<()> for Interpreter {
         let Stmt::Var(data) = stmt else { unreachable!() };
         let value = match &data.initializer {
             Some(value) => self.evaluate(value),
-            None => Literal::Null,
+            None => Object::from(Literal::Null),
         };
 
         self.environment.borrow_mut().define(&data.name.lexeme, value);
@@ -193,7 +257,7 @@ mod test {
     fn evaluate_literal() {
         let mut interpreter = Interpreter::new();
         let expr = Expr::Literal(Literal::Number(12.0));
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(12.0));
     }
 
     #[test]
@@ -204,7 +268,7 @@ mod test {
             operator: Token::new(Type::And, String::from("and"), None, 1),
             right: Box::new(Expr::Literal(Literal::Bool(true))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(true));
     }
 
     #[test]
@@ -215,7 +279,7 @@ mod test {
             operator: Token::new(Type::And, String::from("and"), None, 1),
             right: Box::new(Expr::Literal(Literal::Bool(true))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(false));
     }
 
     #[test]
@@ -230,7 +294,7 @@ mod test {
                 right: Box::new(Expr::Literal(Literal::Bool(true))),
             })),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(true));
     }
 
     #[test]
@@ -240,7 +304,7 @@ mod test {
             operator: Token::new(Type::Minus, String::from("-"), None, 1),
             expr: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(-12.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(-12.0));
     }
 
     #[test]
@@ -251,7 +315,7 @@ mod test {
             operator: Token::new(Type::Minus, String::from("-"), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(0.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(0.0));
     }
 
     #[test]
@@ -260,7 +324,7 @@ mod test {
         let expr = Expr::Grouping(expr::GroupingData {
             expr: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(12.0));
     }
 
     #[test]
@@ -275,7 +339,7 @@ mod test {
                 right: Box::new(Expr::Literal(Literal::Number(24.0))),
             })),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(18.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(18.0));
     }
 
     #[test]
@@ -286,7 +350,7 @@ mod test {
             operator: Token::new(Type::Plus, String::from("+"), None, 1),
             right: Box::new(Expr::Literal(Literal::String(String::from("World")))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::String(String::from("HelloWorld")));
+        assert_eq!(interpreter.evaluate(&expr), Object::from("HelloWorld"));
     }
 
     #[test]
@@ -297,7 +361,8 @@ mod test {
             operator: Token::new(Type::Plus, String::from("+"), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Null);
+        assert_eq!(interpreter.evaluate(&expr), Object::from(Literal::Null));
+        assert!(error::did_error());
     }
 
     #[test]
@@ -308,7 +373,7 @@ mod test {
             operator: Token::new(Type::Greater, String::from(">"), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(false));
     }
 
     #[test]
@@ -319,7 +384,7 @@ mod test {
             operator: Token::new(Type::GreaterEqual, String::from(">="), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(true));
     }
 
     #[test]
@@ -330,7 +395,7 @@ mod test {
             operator: Token::new(Type::Less, String::from("<"), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(false));
     }
 
     #[test]
@@ -341,7 +406,7 @@ mod test {
             operator: Token::new(Type::LessEqual, String::from("<="), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(true));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(true));
     }
 
     #[test]
@@ -352,14 +417,14 @@ mod test {
             operator: Token::new(Type::EqualEqual, String::from("=="), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr_true), Literal::Bool(true));
+        assert_eq!(interpreter.evaluate(&expr_true), Object::from(true));
 
         let expr_false = Expr::Binary(expr::BinaryData {
             left: Box::new(Expr::Literal(Literal::Number(12.0))),
             operator: Token::new(Type::EqualEqual, String::from("=="), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(13.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr_false), Literal::Bool(false));
+        assert_eq!(interpreter.evaluate(&expr_false), Object::from(false));
     }
 
     #[test]
@@ -370,21 +435,21 @@ mod test {
             operator: Token::new(Type::BangEqual, String::from("!="), None, 1),
             right: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Bool(false));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(false));
     }
 
     #[test]
     fn evaluate_assign() {
         let mut interpreter = Interpreter::new();
-        interpreter.environment.borrow_mut().define("a", Literal::Number(0.0));
+        interpreter.environment.borrow_mut().define("a", Object::from(0.0));
         let expr = Expr::Assign(expr::AssignData {
             name: Token::new(Type::Identifier, String::from("a"), None, 1),
             value: Box::new(Expr::Literal(Literal::Number(12.0))),
         });
-        assert_eq!(interpreter.evaluate(&expr), Literal::Number(12.0));
+        assert_eq!(interpreter.evaluate(&expr), Object::from(12.0));
         assert_eq!(
             interpreter.environment.borrow().get(&Token::new(Type::Identifier, String::from("a"), None, 1)).unwrap(),
-            Literal::Number(12.0)
+            Object::from(12.0)
         );
     }
 }

@@ -1,6 +1,6 @@
-use crate::expr::{ExprVisitor, UnaryData, BinaryData, GroupingData, Expr, LogicalData};
+use crate::expr::{ExprVisitor, UnaryData, BinaryData, GroupingData, Expr, LogicalData, AssignData, VariableData, CallData};
 use crate::stmt::{StmtVisitor, Stmt};
-use crate::token::Literal;
+use crate::literal::Literal;
 
 /// Returns a string representation of the expression in paranthesize.
 macro_rules! parenthesize {
@@ -50,12 +50,25 @@ impl ExprVisitor<String> for ASTPrinter {
         parenthesize!(self, "group", grouping.expr)
     }
 
-    fn visit_variable_expr(&mut self, variable: &crate::expr::VariableData) -> String {
+    fn visit_variable_expr(&mut self, variable: &VariableData) -> String {
         variable.name.lexeme.clone()
     }
 
-    fn visit_assign_expr(&mut self, assign: &crate::expr::AssignData) -> String {
+    fn visit_assign_expr(&mut self, assign: &AssignData) -> String {
         parenthesize!(self, format!("= {}", &assign.name.lexeme).as_str(), assign.value)
+    }
+
+    fn visit_call_expr(&mut self, call: &CallData) -> String {
+        let mut string = String::new();
+        string += &call.callee.accept(self);
+        string += "(";
+        for arg in &call.arguments {
+            string += &arg.accept(self);
+            string += " ";
+        }
+        string = string.trim_end().to_string();
+        string += ")";
+        string
     }
 }
 
@@ -63,6 +76,27 @@ impl StmtVisitor<String> for ASTPrinter {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::Expression(data) = stmt {
             parenthesize!(self, "expr", data.expr)
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::Function(data) = stmt {
+            let mut string = String::new();
+            string += "(fun ";
+            string += &data.name.lexeme;
+            string += "(";
+            for param in &data.params {
+                string += &param.lexeme;
+                string += " ";
+            }
+            string = string.trim_end().to_string();
+            string += ") { ";
+            string += &data.body.iter().map(|stmt| { stmt.accept(self) }).collect::<Vec<String>>().join(" ");
+            string += " })";
+
+            string
         } else {
             unreachable!()
         }

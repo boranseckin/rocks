@@ -1,6 +1,7 @@
 use substring::Substring;
 
-use crate::token::{Token, Type, Literal};
+use crate::token::{Token, Type};
+use crate::literal::Literal;
 use crate::error::{rloxError, ScanError};
 
 pub struct Scanner {

@@ -1,13 +1,14 @@
 use crate::expr::Expr;
+use crate::function::Function;
 use crate::token::Token;
 
 /// Represents an expression statement's data in the language
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionData {
     pub expr: Expr,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IfData {
     pub condition: Expr,
     pub then_branch: Box<Stmt>,
@@ -15,32 +16,33 @@ pub struct IfData {
 }
 
 /// Represents a print statement's data in the language
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PrintData {
     pub expr: Expr,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct VarData {
     pub name: Token,
     pub initializer: Option<Expr>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct WhileData {
     pub condition: Expr,
     pub body: Box<Stmt>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BlockData {
     pub statements: Vec<Stmt>,
 }
 
 /// Represents a statement in the language
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
     Expression(ExpressionData),
+    Function(Function),
     If(IfData),
     Print(PrintData),
     Var(VarData),
@@ -53,6 +55,7 @@ impl Stmt {
     pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
         match self {
             Stmt::Expression(_) => visitor.visit_expression_stmt(self),
+            Stmt::Function(_) => visitor.visit_function_stmt(self),
             Stmt::If(_) => visitor.visit_if_stmt(self),
             Stmt::Print(_) => visitor.visit_print_stmt(self),
             Stmt::Var(_) => visitor.visit_var_stmt(self),
@@ -64,6 +67,7 @@ impl Stmt {
 
 pub trait StmtVisitor<T> {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) -> T;
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_if_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> T;
@@ -74,7 +78,8 @@ pub trait StmtVisitor<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::token::{Literal, Type};
+    use crate::token::Type;
+    use crate::literal::Literal;
     use crate::ast::ASTPrinter;
 
     #[test]
@@ -188,5 +193,23 @@ mod test {
         let mut ast = ASTPrinter;
 
         assert_eq!(stmt.accept(&mut ast), "{ (expr 1) (print 2) }")
+    }
+
+    #[test]
+    fn test_function_stmt() {
+        let name = Token::new(Type::Identifier, "a".to_string(), None, 1);
+        let params = vec![Token::new(Type::Identifier, "b".to_string(), None, 1)];
+        let body = vec![Stmt::Expression(ExpressionData {
+            expr: Expr::Literal(Literal::Number(1.0)),
+        })];
+        let stmt = Stmt::Function(Function {
+            name,
+            params,
+            body,
+        });
+
+        let mut ast = ASTPrinter;
+
+        assert_eq!(stmt.accept(&mut ast), "(fun a(b) { (expr 1) })");
     }
 }
