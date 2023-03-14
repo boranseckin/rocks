@@ -1,4 +1,5 @@
 use crate::{HAD_ERROR, HAD_RUNTIME_ERROR};
+use crate::object::Object;
 use crate::token::{Token, Type};
 
 pub fn did_error() -> bool {
@@ -80,6 +81,12 @@ impl rloxError for RuntimeError {
             HAD_RUNTIME_ERROR = true;
         }
     }
+}
+
+/// Used to return from functions
+#[derive(Debug)]
+pub struct ReturnError {
+    pub value: Object,
 }
 
 #[cfg(test)]

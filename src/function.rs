@@ -11,37 +11,46 @@ use crate::stmt::Stmt;
 use crate::token::{Token, Type};
 use crate::literal::Literal;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub name: Token,
     pub params: Vec<Token>,
     pub body: Vec<Stmt>,
+    pub closure: Rc<RefCell<Environment>>,
+}
+
+impl Function {
+    pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>) -> Self {
+        match stmt {
+            Stmt::Function(data) => Function {
+                name: data.name,
+                params: data.params,
+                body: data.body,
+                closure,
+            },
+            _ => panic!("Expected function statement"),
+        }
+    }
 }
 
 impl Callable for Function {
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
-        let mut environment = Environment::new(Some(Rc::clone(&interpreter.globals)));
+        let environment = Rc::new(RefCell::new(
+            Environment::new(Some(Rc::clone(&self.closure)))
+        ));
 
         self.params.iter().zip(arguments.iter()).for_each(|(param, arg)| {
-            environment.define(&param.lexeme, arg.to_owned());
+            environment.borrow_mut().define(&param.lexeme, arg.to_owned());
         });
 
-        interpreter.execute_block(&self.body, Rc::new(RefCell::new(environment)));
-
-        Ok(Object::from(Literal::Null))
+        match interpreter.execute_block(&self.body, environment) {
+            Ok(_) => Ok(Object::from(Literal::Null)),
+            Err(err) => Ok(err.value),
+        }
     }
 
     fn arity(&self) -> usize {
         self.params.len()
-    }
-}
-
-impl From<Stmt> for Function {
-    fn from(value: Stmt) -> Self {
-        match value {
-            Stmt::Function(function) => function,
-            _ => panic!("Cannot convert {:?} to Function", value),
-        }
     }
 }
 

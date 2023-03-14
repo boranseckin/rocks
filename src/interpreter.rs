@@ -2,9 +2,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::environment::Environment;
-use crate::error::{rloxError, RuntimeError, self};
+use crate::error::{rloxError, RuntimeError, self, ReturnError};
 use crate::expr::{self, Expr, ExprVisitor};
-use crate::function::NativeFunction;
+use crate::function::{NativeFunction, Function};
 use crate::object::{Object, Callable};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::Type;
@@ -13,7 +13,7 @@ use crate::literal::Literal;
 pub struct Interpreter {
     // Interior mutability with multiple owners
     environment: Rc<RefCell<Environment>>,
-    pub(crate) globals: Rc<RefCell<Environment>>,
+    globals: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
@@ -24,16 +24,18 @@ impl Interpreter {
             globals.borrow_mut().define(&native.name.lexeme, Object::from(native.clone()));
         });
 
-        Interpreter { environment: globals.clone(), globals }
+        Interpreter { environment: Rc::clone(&globals), globals: Rc::clone(&globals) }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.execute(statement);
+            self.execute(statement).unwrap_or_else(|err| {
+                dbg!(err);
+            });
         }
     }
 
-    fn execute(&mut self, stmt: &Stmt) {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         stmt.accept(self)
     }
 
@@ -41,15 +43,17 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         environment: Rc<RefCell<Environment>>
-    ) {
+    ) -> Result<(), ReturnError> {
         let previous = self.environment.clone();
         self.environment = environment;
 
         for statement in statements {
-            self.execute(statement);
+            self.execute(statement)?;
         }
 
         self.environment = previous;
+
+        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Object {
@@ -190,39 +194,62 @@ impl ExprVisitor<Object> for Interpreter {
     }
 }
 
-impl StmtVisitor<()> for Interpreter {
-    fn visit_expression_stmt(&mut self, stmt: &Stmt) {
+impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Expression(data) = stmt else { unreachable!() };
         self.evaluate(&data.expr);
+
+        Ok(())
     }
 
-    fn visit_function_stmt(&mut self, stmt: &Stmt) {
-        let Stmt::Function(function) = stmt else { unreachable!() };
-        self.environment.borrow_mut().define(&function.name.lexeme, Object::from(function.to_owned()));
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+        let Stmt::Function(_) = stmt else { unreachable!() };
+
+        let function = Function::new(stmt.to_owned(), Rc::clone(&self.environment));
+
+        self.environment.borrow_mut().define(&function.name.lexeme.clone(), Object::from(function));
+
+        Ok(())
     }
 
-    fn visit_if_stmt(&mut self, stmt: &Stmt) {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::If(data) = stmt else { unreachable!() };
         if self.evaluate(&data.condition).as_bool() {
-            self.execute(&data.then_branch);
+            self.execute(&data.then_branch)
         } else if let Some(else_branch) = &data.else_branch {
-            self.execute(else_branch);
+            self.execute(else_branch)
+        } else {
+            Ok(())
         }
     }
 
-    fn visit_print_stmt(&mut self, stmt: &Stmt) {
+    fn visit_print_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Print(data) = stmt else { unreachable!() };
         let value = self.evaluate(&data.expr);
 
         // Make sure evaluate didn't throw an error
         if error::did_error() {
-            return;
+            return Ok(());
         }
 
         println!("{value}");
+
+        Ok(())
     }
 
-    fn visit_var_stmt(&mut self, stmt: &Stmt) {
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+        let Stmt::Return(data) = stmt else { unreachable!() };
+
+        let value = if let Some(expr) = &data.value {
+            self.evaluate(&expr)
+        } else {
+            Object::from(Literal::Null)
+        };
+
+        Err(ReturnError { value })
+    }
+
+    fn visit_var_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Var(data) = stmt else { unreachable!() };
         let value = match &data.initializer {
             Some(value) => self.evaluate(value),
@@ -230,21 +257,25 @@ impl StmtVisitor<()> for Interpreter {
         };
 
         self.environment.borrow_mut().define(&data.name.lexeme, value);
+
+        Ok(())
     }
 
-    fn visit_while_stmt(&mut self, stmt: &Stmt) {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::While(data) = stmt else { unreachable!() };
         while self.evaluate(&data.condition).as_bool() {
-            self.execute(&data.body);
+            self.execute(&data.body)?;
         }
+
+        Ok(())
     }
 
-    fn visit_block_stmt(&mut self, stmt: &Stmt) {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Block(data) = stmt else { unreachable!() };
         self.execute_block(
             &data.statements,
             Rc::new(RefCell::new(Environment::new(Some(Rc::clone(&self.environment)))))
-        );
+        )
     }
 }
 

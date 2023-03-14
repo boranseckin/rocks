@@ -1,11 +1,17 @@
 use crate::expr::Expr;
-use crate::function::Function;
 use crate::token::Token;
 
 /// Represents an expression statement's data in the language
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionData {
     pub expr: Expr,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct FunctionData {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Stmt>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -19,6 +25,12 @@ pub struct IfData {
 #[derive(Debug, PartialEq, Clone)]
 pub struct PrintData {
     pub expr: Expr,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ReturnData {
+    pub keyword: Token,
+    pub value: Option<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -42,9 +54,10 @@ pub struct BlockData {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
     Expression(ExpressionData),
-    Function(Function),
+    Function(FunctionData),
     If(IfData),
     Print(PrintData),
+    Return(ReturnData),
     Var(VarData),
     While(WhileData),
     Block(BlockData),
@@ -58,6 +71,7 @@ impl Stmt {
             Stmt::Function(_) => visitor.visit_function_stmt(self),
             Stmt::If(_) => visitor.visit_if_stmt(self),
             Stmt::Print(_) => visitor.visit_print_stmt(self),
+            Stmt::Return(_) => visitor.visit_return_stmt(self),
             Stmt::Var(_) => visitor.visit_var_stmt(self),
             Stmt::While(_) => visitor.visit_while_stmt(self),
             Stmt::Block(_) => visitor.visit_block_stmt(self),
@@ -70,6 +84,7 @@ pub trait StmtVisitor<T> {
     fn visit_function_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_if_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> T;
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_block_stmt(&mut self, stmt: &Stmt) -> T;
@@ -202,7 +217,7 @@ mod test {
         let body = vec![Stmt::Expression(ExpressionData {
             expr: Expr::Literal(Literal::Number(1.0)),
         })];
-        let stmt = Stmt::Function(Function {
+        let stmt = Stmt::Function(FunctionData {
             name,
             params,
             body,
@@ -211,5 +226,16 @@ mod test {
         let mut ast = ASTPrinter;
 
         assert_eq!(stmt.accept(&mut ast), "(fun a(b) { (expr 1) })");
+    }
+
+    #[test]
+    fn test_return_stmt() {
+        let keyword = Token::new(Type::Return, "return".to_string(), None, 1);
+        let value = Expr::Literal(Literal::Number(1.0));
+        let stmt = Stmt::Return(ReturnData { keyword, value: Some(value) });
+
+        let mut ast = ASTPrinter;
+
+        assert_eq!(stmt.accept(&mut ast), "(return 1)");
     }
 }

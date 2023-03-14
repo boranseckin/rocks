@@ -129,6 +129,14 @@ impl StmtVisitor<String> for ASTPrinter {
         }
     }
 
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> String {
+        if let Stmt::Return(data) = stmt {
+            parenthesize!(self, "return", data.value.clone().unwrap_or(Expr::Literal(Literal::Null)))
+        } else {
+            unreachable!()
+        }
+    }
+
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> String {
         if let Stmt::Var(data) = stmt {
             let mut string = String::new();

@@ -1,9 +1,8 @@
 use crate::error::{rloxError, ParseError};
-use crate::function::Function;
 use crate::token::{Token, Type};
 use crate::literal::Literal;
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData};
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -25,8 +24,9 @@ macro_rules! matches {
 ///
 /// - Program     -> Decleration* EOF ;
 /// - Decleration -> FunDecl | VarDecl | Statement ;
-/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | WhileStmt | Block ;
+/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block ;
 /// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
+/// - ReturnStmt  -> "return" Expression? ";" ;
 /// - WhileStmt   -> "while" "(" Expression ")" Statement ;
 /// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - Block       -> "{" Decleration* "}" ;
@@ -187,6 +187,10 @@ impl Parser {
             return self.print_statement();
         }
 
+        if matches!(self, Type::Return) {
+            return self.return_statement();
+        }
+
         if matches!(self, Type::While) {
             return self.while_statement();
         }
@@ -284,6 +288,19 @@ impl Parser {
         Ok(Stmt::Print(PrintData { expr }))
     }
 
+    /// Parses a return statement.
+    fn return_statement(&mut self) -> ParseResult<Stmt> {
+        let keyword = self.previous().to_owned();
+
+        let value = match self.check(Type::Semicolon) {
+            true => None,
+            false => Some(self.expression()?),
+        };
+
+        self.consume(Type::Semicolon, "Expect ';' after return value")?;
+        Ok(Stmt::Return(ReturnData { keyword, value }))
+    }
+
     /// Parses an expression statement.
     fn expression_statement(&mut self) -> ParseResult<Stmt> {
         let expr = match self.expression() {
@@ -327,7 +344,7 @@ impl Parser {
 
         let body = self.block()?;
 
-        Ok(Stmt::Function(Function { name, params, body }))
+        Ok(Stmt::Function(FunctionData { name, params, body }))
     }
 
     /// Parses a block statement.
