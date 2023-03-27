@@ -66,27 +66,27 @@ impl Expr {
         use Expr::*;
 
         match self {
-            Literal(args) => visitor.visit_literal_expr(args),
-            Logical(args) => visitor.visit_logical_expr(args),
-            Unary(args) => visitor.visit_unary_expr(args),
-            Binary(args) => visitor.visit_binary_expr(args),
-            Grouping(args) => visitor.visit_grouping_expr(args),
-            Variable(args) => visitor.visit_variable_expr(args),
-            Assign(args) => visitor.visit_assign_expr(args),
-            Call(args) => visitor.visit_call_expr(args),
+            Literal(_) => visitor.visit_literal_expr(self),
+            Logical(_) => visitor.visit_logical_expr(self),
+            Unary(_) => visitor.visit_unary_expr(self),
+            Binary(_) => visitor.visit_binary_expr(self),
+            Grouping(_) => visitor.visit_grouping_expr(self),
+            Variable(_) => visitor.visit_variable_expr(self),
+            Assign(_) => visitor.visit_assign_expr(self),
+            Call(_) => visitor.visit_call_expr(self),
         }
     }
 }
 
 pub trait ExprVisitor<T> {
-    fn visit_literal_expr(&mut self, literal: &Literal) -> T;
-    fn visit_logical_expr(&mut self, logical: &LogicalData) -> T;
-    fn visit_unary_expr(&mut self, unary: &UnaryData) -> T;
-    fn visit_binary_expr(&mut self, binary: &BinaryData) -> T;
-    fn visit_grouping_expr(&mut self, grouping: &GroupingData) -> T;
-    fn visit_variable_expr(&mut self, variable: &VariableData) -> T;
-    fn visit_assign_expr(&mut self, assign: &AssignData) -> T;
-    fn visit_call_expr(&mut self, call: &CallData) -> T;
+    fn visit_literal_expr(&mut self, expr: &Expr) -> T;
+    fn visit_logical_expr(&mut self, expr: &Expr) -> T;
+    fn visit_unary_expr(&mut self, expr: &Expr) -> T;
+    fn visit_binary_expr(&mut self, expr: &Expr) -> T;
+    fn visit_grouping_expr(&mut self, expr: &Expr) -> T;
+    fn visit_variable_expr(&mut self, expr: &Expr) -> T;
+    fn visit_assign_expr(&mut self, expr: &Expr) -> T;
+    fn visit_call_expr(&mut self, expr: &Expr) -> T;
 }
 
 #[cfg(test)]

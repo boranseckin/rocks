@@ -68,37 +68,41 @@ impl Default for Interpreter {
 }
 
 impl ExprVisitor<Object> for Interpreter {
-    fn visit_literal_expr(&mut self, literal: &Literal) -> Object {
-        Object::Literal(literal.clone())
+    fn visit_literal_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Literal(expr) = expr else { unreachable!() };
+        Object::Literal(expr.clone())
     }
 
-    fn visit_logical_expr(&mut self, logical: &expr::LogicalData) -> Object {
-        let left = self.evaluate(&logical.left);
+    fn visit_logical_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Logical(expr) = expr else { unreachable!() };
+        let left = self.evaluate(&expr.left);
 
-        match logical.operator.r#type {
+        match expr.operator.r#type {
             Type::Or => if left.as_bool() { return left },
             Type::And => if !left.as_bool() { return left },
             _ => unreachable!(),
         };
 
-        self.evaluate(&logical.right)
+        self.evaluate(&expr.right)
     }
 
-    fn visit_unary_expr(&mut self, unary: &expr::UnaryData) -> Object {
-        let right = self.evaluate(&unary.expr);
+    fn visit_unary_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Unary(expr) = expr else { unreachable!() };
+        let right = self.evaluate(&expr.expr);
 
-        match unary.operator.r#type {
+        match expr.operator.r#type {
             Type::Minus => Object::Literal(Literal::Number(-right.as_number())),
             Type::Bang => Object::Literal(Literal::Bool(!right.as_bool())),
             _ => unreachable!(),
         }
     }
 
-    fn visit_binary_expr(&mut self, binary: &expr::BinaryData) -> Object {
-        let left = self.evaluate(&binary.left);
-        let right = self.evaluate(&binary.right);
+    fn visit_binary_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Binary(expr) = expr else { unreachable!() };
+        let left = self.evaluate(&expr.left);
+        let right = self.evaluate(&expr.right);
 
-        match binary.operator.r#type {
+        match expr.operator.r#type {
             Type::Greater       => Object::from(left.as_number() > right.as_number()),
             Type::GreaterEqual  => Object::from(left.as_number() >= right.as_number()),
             Type::Less          => Object::from(left.as_number() < right.as_number()),
@@ -113,7 +117,7 @@ impl ExprVisitor<Object> for Interpreter {
                 (Object::Literal(Literal::String(l)), Object::Literal(Literal::String(r))) => Object::from(l + &r),
                 _ => {
                     RuntimeError {
-                        token: binary.operator.clone(),
+                        token: expr.operator.clone(),
                         message: "Tried to add two unsupported types".to_string(),
                     }.throw();
                     Object::from(Literal::Null)
@@ -123,11 +127,12 @@ impl ExprVisitor<Object> for Interpreter {
         }
     }
 
-    fn visit_call_expr(&mut self, call: &expr::CallData) -> Object {
-        let callee = self.evaluate(call.callee.as_ref());
+    fn visit_call_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Call(expr) = expr else { unreachable!() };
+        let callee = self.evaluate(expr.callee.as_ref());
 
         // TODO: Try to avoid clone here
-        let arguments: Vec<Object> = call.arguments
+        let arguments: Vec<Object> = expr.arguments
             .iter()
             .map(|expr| self.evaluate(expr))
             .collect();
@@ -136,14 +141,14 @@ impl ExprVisitor<Object> for Interpreter {
             Object::Function(function) => {
                 if arguments.len() != function.arity() {
                     RuntimeError {
-                        token: call.paren.clone(),
+                        token: expr.paren.clone(),
                         message: format!("Expected {} arguments but got {}", function.arity(), arguments.len()),
                     }.throw();
                     return Object::from(Literal::Null);
                 }
 
                 function.call(self, arguments).unwrap_or_else(|mut error| {
-                    error.token = call.paren.clone();
+                    error.token = expr.paren.clone();
                     error.throw();
                     Object::from(Literal::Null)
                 })
@@ -151,21 +156,21 @@ impl ExprVisitor<Object> for Interpreter {
             Object::NativeFunction(function) => {
                 if arguments.len() != function.arity() {
                     RuntimeError {
-                        token: call.paren.clone(),
+                        token: expr.paren.clone(),
                         message: format!("Expected {} arguments but got {}", function.arity(), arguments.len()),
                     }.throw();
                     return Object::from(Literal::Null);
                 }
 
                 function.call(self, arguments).unwrap_or_else(|mut error| {
-                    error.token = call.paren.clone();
+                    error.token = expr.paren.clone();
                     error.throw();
                     Object::from(Literal::Null)
                 })
             },
             _ => {
                 RuntimeError {
-                    token: call.paren.clone(),
+                    token: expr.paren.clone(),
                     message: "Can only call functions and classes".to_string(),
                 }.throw();
                 Object::from(Literal::Null)
@@ -173,23 +178,26 @@ impl ExprVisitor<Object> for Interpreter {
         }
     }
 
-    fn visit_grouping_expr(&mut self, grouping: &expr::GroupingData) -> Object {
-        self.evaluate(&grouping.expr)
+    fn visit_grouping_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Grouping(expr) = expr else { unreachable!() };
+        self.evaluate(&expr.expr)
     }
 
-    fn visit_variable_expr(&mut self, variable: &expr::VariableData) -> Object {
+    fn visit_variable_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Variable(expr) = expr else { unreachable!() };
         self.environment
             .borrow()
-            .get(&variable.name)
+            .get(&expr.name)
             .unwrap_or_else(|error| {
                 error.throw();
                 Object::from(Literal::Null)
             })
     }
 
-    fn visit_assign_expr(&mut self, assign: &expr::AssignData) -> Object {
-        let value = self.evaluate(&assign.value);
-        self.environment.borrow_mut().assign(&assign.name, value.to_owned());
+    fn visit_assign_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Assign(expr) = expr else { unreachable!() };
+        let value = self.evaluate(&expr.value);
+        self.environment.borrow_mut().assign(&expr.name, value.to_owned());
         value
     }
 }
