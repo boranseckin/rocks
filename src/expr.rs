@@ -1,7 +1,7 @@
 use crate::token::Token;
 use crate::literal::Literal;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LogicalData {
     pub left: Box<Expr>,
     pub operator: Token,
@@ -9,14 +9,14 @@ pub struct LogicalData {
 }
 
 /// Represents a unary expression's data in the language.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct UnaryData {
     pub operator: Token,
     pub expr: Box<Expr>,
 }
 
 /// Represents a binary expression's data in the language.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BinaryData {
     pub left: Box<Expr>,
     pub operator: Token,
@@ -24,23 +24,23 @@ pub struct BinaryData {
 }
 
 /// Represents a grouping expression's data in the language.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct GroupingData {
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VariableData {
     pub name: Token,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AssignData {
     pub name: Token,
     pub value: Box<Expr>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CallData {
     pub callee: Box<Expr>,
     pub paren: Token,
@@ -48,7 +48,7 @@ pub struct CallData {
 }
 
 /// Represents an expression in the language.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
     Literal(Literal), // Literal is defined in token.rs
     Logical(LogicalData),

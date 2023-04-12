@@ -1,19 +1,21 @@
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::environment::Environment;
 use crate::error::{rloxError, RuntimeError, self, ReturnError};
-use crate::expr::{self, Expr, ExprVisitor};
+use crate::expr::{Expr, ExprVisitor};
 use crate::function::{NativeFunction, Function};
 use crate::object::{Object, Callable};
 use crate::stmt::{Stmt, StmtVisitor};
-use crate::token::Type;
+use crate::token::{Type, Token};
 use crate::literal::Literal;
 
 pub struct Interpreter {
     // Interior mutability with multiple owners
     environment: Rc<RefCell<Environment>>,
     globals: Rc<RefCell<Environment>>,
+    locals: HashMap<Token, usize>,
 }
 
 impl Interpreter {
@@ -24,19 +26,39 @@ impl Interpreter {
             globals.borrow_mut().define(&native.name.lexeme, Object::from(native.clone()));
         });
 
-        Interpreter { environment: Rc::clone(&globals), globals: Rc::clone(&globals) }
+        Interpreter {
+            environment: Rc::clone(&globals),
+            globals: Rc::clone(&globals),
+            locals: HashMap::new(),
+        }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.execute(statement).unwrap_or_else(|err| {
-                dbg!(err);
-            });
+            self.execute(statement).unwrap_or_else(|_err| { /* Do nothing */ });
         }
     }
-
+ 
     fn execute(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         stmt.accept(self)
+    }
+
+    pub fn resolve(&mut self, name: &Token, depth: usize) {
+        self.locals.insert(name.clone(), depth);
+    }
+
+    fn lookup_variable(&mut self, name: &Token) -> Object {
+        if let Some(distance) = self.locals.get(name) {
+            self.environment.borrow().get_at(*distance, name).unwrap_or_else(|err| {
+                err.throw();
+                Object::Literal(Literal::Null)
+            })
+        } else {
+            self.globals.borrow().get(name).unwrap_or_else(|err| {
+                err.throw();
+                Object::Literal(Literal::Null)
+            })
+        }
     }
 
     pub fn execute_block(
@@ -185,19 +207,19 @@ impl ExprVisitor<Object> for Interpreter {
 
     fn visit_variable_expr(&mut self, expr: &Expr) -> Object {
         let Expr::Variable(expr) = expr else { unreachable!() };
-        self.environment
-            .borrow()
-            .get(&expr.name)
-            .unwrap_or_else(|error| {
-                error.throw();
-                Object::from(Literal::Null)
-            })
+        self.lookup_variable(&expr.name)
     }
 
     fn visit_assign_expr(&mut self, expr: &Expr) -> Object {
         let Expr::Assign(expr) = expr else { unreachable!() };
         let value = self.evaluate(&expr.value);
-        self.environment.borrow_mut().assign(&expr.name, value.to_owned());
+
+        if let Some(distance) = self.locals.get(&expr.name) {
+            self.environment.borrow_mut().assign_at(*distance, &expr.name, value.clone());
+        } else {
+            self.globals.borrow_mut().assign(&expr.name, value.clone());
+        }
+
         value
     }
 }
@@ -291,6 +313,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
 mod test {
     use super::*;
     use crate::token::Token;
+    use crate::expr;
 
     #[test]
     fn evaluate_literal() {

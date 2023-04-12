@@ -13,9 +13,11 @@ pub mod interpreter;
 pub mod literal;
 pub mod object;
 pub mod function;
+pub mod resolver;
 
 use parser::Parser;
 use scanner::Scanner;
+use resolver::Resolver;
 
 static mut HAD_ERROR: bool = false;
 static mut HAD_RUNTIME_ERROR: bool = false;
@@ -74,6 +76,13 @@ impl rlox {
 
         let mut parser = Parser::new(tokens);
         let statements = parser.parse();
+
+        if error::did_error() {
+            return;
+        }
+
+        let mut resolver = Resolver::new(&mut self.interpreter);
+        resolver.resolve(&statements);
 
         if error::did_error() {
             return;

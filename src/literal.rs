@@ -64,3 +64,5 @@ impl fmt::Display for Literal {
         }
     }
 }
+
+impl Eq for Literal {}

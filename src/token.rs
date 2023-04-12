@@ -1,9 +1,9 @@
-use std::fmt;
+use std::{fmt, hash::Hash};
 
 use crate::literal::Literal;
 
 /// Represents a token in the language.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Type {
   // Single-character tokens.
   LeftParen, RightParen, LeftBrace, RightBrace,
@@ -51,6 +51,16 @@ impl fmt::Display for Token {
         write!(f, "{:#?} {} {:#?} @ {}", self.r#type, self.lexeme, self.literal, self.line)
     }
 }
+
+impl Hash for Token {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.r#type.hash(state);
+        self.lexeme.hash(state);
+        self.line.hash(state);
+    }
+}
+
+impl Eq for Token {}
 
 #[cfg(test)]
 mod test {

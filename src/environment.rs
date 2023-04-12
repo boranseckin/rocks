@@ -21,24 +21,46 @@ impl Environment {
     }
 
     pub fn define(&mut self, name: &str, value: Object) {
-        self.variables.insert(name.to_owned(), value);
+        self.variables.insert(name.to_string(), value);
+    }
+
+    fn ancestor(&self, distance: usize) -> Rc<RefCell<Environment>> {
+        let parent = self.enclosing.clone()
+            .expect(&format!("enclosing environment to exist at depth {}", 1));
+        let mut environment = Rc::clone(&parent);
+
+        for i in 1..distance {
+            let parent = environment.borrow().enclosing.clone()
+                .expect(&format!("enclosing environment to exist at depth {}", i));
+            environment = Rc::clone(&parent);
+        }
+
+        environment
     }
 
     pub fn assign(&mut self, name: &Token, value: Object) {
         if self.variables.contains_key(&name.lexeme) {
-            self.variables.insert(name.lexeme.to_owned(), value);
-            return
+            self.variables.insert(name.lexeme.clone(), value);
+            return;
         }
 
         if let Some(enclosing) = &mut self.enclosing {
             enclosing.borrow_mut().assign(name, value);
-            return
+            return;
         }
 
         RuntimeError {
-            token: name.to_owned(),
+            token: name.clone(),
             message: format!("Undefined variable '{}'", name.lexeme),
         }.throw();
+    }
+
+    pub fn assign_at(&mut self, distance: usize, name: &Token, value: Object) {
+        if distance > 0 {
+            self.ancestor(distance).borrow_mut().variables.insert(name.lexeme.clone(), value);
+        } else {
+            self.variables.insert(name.lexeme.clone(), value);
+        }
     }
 
     pub fn get(&self, name: &Token) -> Result<Object, RuntimeError> {
@@ -52,6 +74,26 @@ impl Environment {
 
         let message = format!("Undefined variable '{}'", name.lexeme);
         Err(RuntimeError { token: name.clone(), message })
+    }
+
+    pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, RuntimeError> {
+        if distance > 0 {
+            match self.ancestor(distance).borrow().variables.get(&name.lexeme) {
+                Some(variable) => Ok(variable.clone()),
+                None => Err(RuntimeError {
+                    token: name.clone(),
+                    message: format!("Undefined variable {} '{}'", distance, name.lexeme),
+                }),
+            }
+        } else {
+            match self.variables.get(&name.lexeme) {
+                Some(variable) => Ok(variable.clone()),
+                None => Err(RuntimeError {
+                    token: name.clone(),
+                    message: format!("Undefined variable {} '{}'", distance, name.lexeme),
+                }),
+            }
+        }
     }
 }
 
