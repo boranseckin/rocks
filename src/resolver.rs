@@ -167,6 +167,12 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
             self.resolve_expr(argument);
         }
     }
+
+    fn visit_get_expr(&mut self, expr: &Expr) -> () {
+        let Expr::Get(get) = expr else { unreachable!() };
+
+        self.resolve_expr(&get.object);
+    }
 }
 
 impl<'a> StmtVisitor<()> for Resolver<'a> {

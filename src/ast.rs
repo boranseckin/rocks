@@ -78,6 +78,11 @@ impl ExprVisitor<String> for ASTPrinter {
         string += ")";
         string
     }
+
+    fn visit_get_expr(&mut self, expr: &Expr) -> String {
+        let Expr::Get(data) = expr else { unreachable!() };
+        parenthesize!(self, "get", data.object)
+    }
 }
 
 impl StmtVisitor<String> for ASTPrinter {

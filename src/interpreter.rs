@@ -238,6 +238,25 @@ impl ExprVisitor<Object> for Interpreter {
 
         value
     }
+
+    fn visit_get_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Get(expr) = expr else { unreachable!() };
+        let object = self.evaluate(&expr.object);
+
+        if let Object::Instance(instance) = object {
+            return instance.get(&expr.name).unwrap_or_else(|err| {
+                err.throw();
+                todo!("Make this a real runtime error");
+            });
+        }
+
+        RuntimeError {
+            token: expr.name.clone(),
+            message: "Only instances have properties".to_owned(),
+        }.throw();
+
+        todo!("Make this a real runtime error");
+    }
 }
 
 impl StmtVisitor<Result<(), ReturnError>> for Interpreter {

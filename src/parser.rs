@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData};
 use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData, ClassData};
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -47,7 +47,7 @@ macro_rules! matches {
 /// - Factor      -> Unary ( ( "*" | "/" ) Unary )* ;
 /// - Unary       -> ( "!" | "-" ) Unary | Primary ;
 /// - Arguments   -> Expression ( "," Expression )* ;
-/// - Call        -> Primary ( "(" Arguments? ")" )* ;
+/// - Call        -> Primary ( "(" Arguments? ")" | "." IDENTIFIER )* ;
 /// - Primary     -> NUMBER | STRING | false | true | null | "(" Expression ")" | IDENTIFIER ;
 pub struct Parser {
     tokens: Vec<Token>,
@@ -585,6 +585,9 @@ impl Parser {
         loop {
             if matches!(self, Type::LeftParen) {
                 expr = self.finish_call(&expr)?;
+            } else if matches!(self, Type::Dot) {
+                let name = self.consume(Type::Identifier, "Expected property name after '.'")?;
+                expr = Expr::Get(GetData { object: Box::new(expr), name: name.clone() });
             } else {
                 break;
             }

@@ -47,6 +47,12 @@ pub struct CallData {
     pub arguments: Vec<Expr>,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct GetData {
+    pub object: Box<Expr>,
+    pub name: Token,
+}
+
 /// Represents an expression in the language.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
@@ -58,6 +64,7 @@ pub enum Expr {
     Variable(VariableData),
     Assign(AssignData),
     Call(CallData),
+    Get(GetData),
 }
 
 impl Expr {
@@ -74,6 +81,7 @@ impl Expr {
             Variable(_) => visitor.visit_variable_expr(self),
             Assign(_) => visitor.visit_assign_expr(self),
             Call(_) => visitor.visit_call_expr(self),
+            Get(_) => visitor.visit_get_expr(self),
         }
     }
 }
@@ -87,6 +95,7 @@ pub trait ExprVisitor<T> {
     fn visit_variable_expr(&mut self, expr: &Expr) -> T;
     fn visit_assign_expr(&mut self, expr: &Expr) -> T;
     fn visit_call_expr(&mut self, expr: &Expr) -> T;
+    fn visit_get_expr(&mut self, expr: &Expr) -> T;
 }
 
 #[cfg(test)]
