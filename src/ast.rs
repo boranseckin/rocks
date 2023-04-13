@@ -160,4 +160,8 @@ impl StmtVisitor<String> for ASTPrinter {
         string += " }";
         string
     }
+
+    fn visit_class_stmt(&mut self, stmt: &Stmt) -> String {
+        todo!()
+    }
 }

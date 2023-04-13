@@ -14,6 +14,7 @@ pub mod literal;
 pub mod object;
 pub mod function;
 pub mod resolver;
+pub mod class;
 
 use parser::Parser;
 use scanner::Scanner;

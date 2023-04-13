@@ -50,6 +50,12 @@ pub struct BlockData {
     pub statements: Vec<Stmt>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct ClassData {
+    pub name: Token,
+    pub methods: Vec<Stmt>,
+}
+
 /// Represents a statement in the language
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stmt {
@@ -61,6 +67,7 @@ pub enum Stmt {
     Var(VarData),
     While(WhileData),
     Block(BlockData),
+    Class(ClassData),
 }
 
 impl Stmt {
@@ -75,6 +82,7 @@ impl Stmt {
             Stmt::Var(_) => visitor.visit_var_stmt(self),
             Stmt::While(_) => visitor.visit_while_stmt(self),
             Stmt::Block(_) => visitor.visit_block_stmt(self),
+            Stmt::Class(_) => visitor.visit_class_stmt(self),
         }
     }
 }
@@ -88,6 +96,7 @@ pub trait StmtVisitor<T> {
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_block_stmt(&mut self, stmt: &Stmt) -> T;
+    fn visit_class_stmt(&mut self, stmt: &Stmt) -> T;
 }
 
 #[cfg(test)]

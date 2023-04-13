@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::class::{Class, Instance};
 use crate::error::RuntimeError;
 use crate::function::{Function, NativeFunction};
 use crate::literal::Literal;
@@ -10,6 +11,8 @@ pub enum Object {
     Literal(Literal),
     Function(Function),
     NativeFunction(NativeFunction),
+    Class(Class),
+    Instance(Instance),
 }
 
 impl Object {
@@ -70,6 +73,18 @@ impl From<NativeFunction> for Object {
     }
 }
 
+impl From<Class> for Object {
+    fn from(value: Class) -> Self {
+        Object::Class(value)
+    }
+}
+
+impl From<Instance> for Object {
+    fn from(value: Instance) -> Self {
+        Object::Instance(value)
+    }
+}
+
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -85,6 +100,8 @@ impl fmt::Display for Object {
             Object::Literal(literal) => write!(f, "{literal}"),
             Object::Function(function) => write!(f, "{function}"),
             Object::NativeFunction(function) => write!(f, "{function}"),
+            Object::Class(class) => write!(f, "{class}"),
+            Object::Instance(instance) => write!(f, "{instance}"),
         }
     }
 }

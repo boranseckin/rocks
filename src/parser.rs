@@ -2,7 +2,7 @@ use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
 use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData};
+use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData, ClassData};
 
 type ParseResult<T> = Result<T, ParseError>;
 
@@ -23,7 +23,8 @@ macro_rules! matches {
 /// Parses the tokens and returns the resulting expression.
 ///
 /// - Program     -> Decleration* EOF ;
-/// - Decleration -> FunDecl | VarDecl | Statement ;
+/// - Decleration -> ClassDecl | FunDecl | VarDecl | Statement ;
+/// - ClassDecl   -> "class" IDENTIFIER "{" Function* "}" ;
 /// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block ;
 /// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
 /// - ReturnStmt  -> "return" Expression? ";" ;
@@ -121,7 +122,9 @@ impl Parser {
 
     /// Parses a decleration.
     fn decleration(&mut self) -> Option<Stmt> {
-        let statement = if matches!(self, Type::Fun) {
+        let statement = if matches!(self, Type::Class) {
+           self.class_decleration()
+        } else if matches!(self, Type::Fun) {
             self.function("function")
         } else if matches!(self, Type::Var) {
             self.var_decleration()
@@ -137,6 +140,21 @@ impl Parser {
                 None
             }
         }
+    }
+
+    /// Parses a class decleration
+    fn class_decleration(&mut self) -> ParseResult<Stmt> {
+        let name = self.consume(Type::Identifier, "Expect class name")?.clone();
+        self.consume(Type::LeftBrace, "Expect '{' before class body")?;
+
+        let mut methods: Vec<Stmt> = vec![];
+        while !self.check(Type::RightBrace) && !self.is_at_end() {
+            methods.push(self.function("method")?);
+        }
+
+        self.consume(Type::RightBrace, "Expect '}' after class body")?;
+
+        Ok(Stmt::Class(ClassData { name, methods }))
     }
 
     /// Parses a variable decleration.

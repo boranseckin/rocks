@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use crate::class::Class;
 use crate::environment::Environment;
 use crate::error::{rloxError, RuntimeError, self, ReturnError};
 use crate::expr::{Expr, ExprVisitor};
@@ -190,6 +191,21 @@ impl ExprVisitor<Object> for Interpreter {
                     Object::from(Literal::Null)
                 })
             },
+            Object::Class(class) => {
+                if arguments.len() != class.arity() {
+                    RuntimeError {
+                        token: expr.paren.clone(),
+                        message: format!("Expected {} arguments but got {}", class.arity(), arguments.len()),
+                    }.throw();
+                    return Object::from(Literal::Null);
+                }
+
+                class.call(self, vec![]).unwrap_or_else(|mut error| {
+                    error.token = expr.paren.clone();
+                    error.throw();
+                    Object::from(Literal::Null)
+                })
+            },
             _ => {
                 RuntimeError {
                     token: expr.paren.clone(),
@@ -306,6 +322,17 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
             &data.statements,
             Rc::new(RefCell::new(Environment::new(Some(Rc::clone(&self.environment)))))
         )
+    }
+
+    fn visit_class_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+        let Stmt::Class(data) = stmt else { unreachable!() };
+
+        let mut env = self.environment.borrow_mut();
+        env.define(&data.name.lexeme, Object::Literal(Literal::Null));
+        let class = Class { name: data.name.lexeme.clone() };
+        env.assign(&data.name, Object::from(class));
+
+        Ok(())
     }
 }
 

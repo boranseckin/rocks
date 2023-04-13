@@ -240,4 +240,11 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         self.resolve_expr(&while_stmt.condition);
         self.resolve_stmt(&while_stmt.body);
     }
+
+    fn visit_class_stmt(&mut self, stmt: &Stmt) -> () {
+        let Stmt::Class(class_stmt) = stmt else { unreachable!() };
+
+        self.declare(&class_stmt.name);
+        self.define(&class_stmt.name);
+    }
 }
