@@ -10,6 +10,7 @@ use crate::token::Token;
 enum FunctionType {
     None,
     Function,
+    Method,
 }
 
 pub struct Resolver<'a> {
@@ -259,5 +260,10 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
 
         self.declare(&class_stmt.name);
         self.define(&class_stmt.name);
+
+        for method in &class_stmt.methods {
+            let decleration = FunctionType::Method;
+            self.resolve_function(method, decleration);
+        }
     }
 }

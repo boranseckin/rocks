@@ -368,10 +368,16 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
     fn visit_class_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Class(data) = stmt else { unreachable!() };
 
-        let mut env = self.environment.borrow_mut();
-        env.define(&data.name.lexeme, Object::Literal(Literal::Null));
-        let class = Class { name: data.name.lexeme.clone() };
-        env.assign(&data.name, Object::from(Rc::new(RefCell::new(class))));
+        self.environment.borrow_mut().define(&data.name.lexeme, Object::Literal(Literal::Null));
+
+        let mut methods: HashMap<String, Function> = HashMap::new();
+        for method in &data.methods {
+            let function = Function::new(method.clone(), Rc::clone(&self.environment));
+            methods.insert(function.name.lexeme.clone(), function);
+        }
+
+        let class = Class::new(data.name.lexeme.clone(), methods);
+        self.environment.borrow_mut().assign(&data.name, Object::from(Rc::new(RefCell::new(class))));
 
         Ok(())
     }

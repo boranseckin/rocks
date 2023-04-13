@@ -4,6 +4,7 @@ use std::fmt::{Debug, Display};
 use std::rc::Rc;
 
 use crate::error::RuntimeError;
+use crate::function::Function;
 use crate::object::{Callable, Object};
 use crate::interpreter::Interpreter;
 use crate::token::Token;
@@ -11,6 +12,20 @@ use crate::token::Token;
 #[derive(Clone)]
 pub struct Class {
     pub name: String,
+    pub methods: HashMap<String, Function>,
+}
+
+impl Class {
+    pub fn new(name: String, methods: HashMap<String, Function>) -> Self {
+        Class { name, methods }
+    }
+
+    pub fn get_method(&self, name: &String) -> Option<Function> {
+        return match self.methods.get(name) {
+            Some(method) => Some(method.clone()),
+            None => None,
+        };
+    }
 }
 
 impl Debug for Class {
@@ -47,6 +62,11 @@ impl Instance {
         if self.fields.contains_key(&name.lexeme) {
             return Ok(self.fields.get(&name.lexeme).unwrap().clone());
         }
+
+        if let Some(method) = self.class.borrow().get_method(&name.lexeme) {
+            return Ok(Object::from(method));
+        }
+
 
         Err(RuntimeError {
             token: name.clone(),
