@@ -83,6 +83,10 @@ impl ExprVisitor<String> for ASTPrinter {
         let Expr::Get(data) = expr else { unreachable!() };
         parenthesize!(self, "get", data.object)
     }
+
+    fn visit_set_expr(&mut self, _expr: &Expr) -> String {
+        todo!()
+    }
 }
 
 impl StmtVisitor<String> for ASTPrinter {
@@ -166,7 +170,7 @@ impl StmtVisitor<String> for ASTPrinter {
         string
     }
 
-    fn visit_class_stmt(&mut self, stmt: &Stmt) -> String {
+    fn visit_class_stmt(&mut self, _stmt: &Stmt) -> String {
         todo!()
     }
 }

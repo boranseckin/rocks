@@ -1,4 +1,6 @@
-use std::fmt;
+use std::cell::RefCell;
+use std::fmt::{Debug, Display};
+use std::rc::Rc;
 
 use crate::class::{Class, Instance};
 use crate::error::RuntimeError;
@@ -11,22 +13,22 @@ pub enum Object {
     Literal(Literal),
     Function(Function),
     NativeFunction(NativeFunction),
-    Class(Class),
-    Instance(Instance),
+    Class(Rc<RefCell<Class>>),
+    Instance(Rc<RefCell<Instance>>),
 }
 
 impl Object {
     pub fn as_number(&self) -> f32 {
         match self {
             Object::Literal(literal) => literal.as_number(),
-            _ => panic!("Cannot convert object to number"),
+            _ => panic!("Cannot convert non-literal object to number"),
         }
     }
 
     pub fn as_bool(&self) -> bool {
         match self {
             Object::Literal(literal) => literal.as_bool(),
-            _ => panic!("Cannot convert object to bool"),
+            _ => panic!("Cannot convert non-literal object to bool"),
         }
     }
 }
@@ -73,14 +75,14 @@ impl From<NativeFunction> for Object {
     }
 }
 
-impl From<Class> for Object {
-    fn from(value: Class) -> Self {
+impl From<Rc<RefCell<Class>>> for Object {
+    fn from(value: Rc<RefCell<Class>>) -> Self {
         Object::Class(value)
     }
 }
 
-impl From<Instance> for Object {
-    fn from(value: Instance) -> Self {
+impl From<Rc<RefCell<Instance>>> for Object {
+    fn from(value: Rc<RefCell<Instance>>) -> Self {
         Object::Instance(value)
     }
 }
@@ -94,19 +96,19 @@ impl PartialEq for Object {
     }
 }
 
-impl fmt::Display for Object {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Object::Literal(literal) => write!(f, "{literal}"),
             Object::Function(function) => write!(f, "{function}"),
             Object::NativeFunction(function) => write!(f, "{function}"),
-            Object::Class(class) => write!(f, "{class}"),
-            Object::Instance(instance) => write!(f, "{instance}"),
+            Object::Class(class) => write!(f, "{}", class.borrow()),
+            Object::Instance(instance) => write!(f, "{}", instance.borrow()),
         }
     }
 }
 
-pub trait Callable: fmt::Debug {
+pub trait Callable: Debug {
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError>;
     fn arity(&self) -> usize;
 }

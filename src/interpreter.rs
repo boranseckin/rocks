@@ -192,15 +192,15 @@ impl ExprVisitor<Object> for Interpreter {
                 })
             },
             Object::Class(class) => {
-                if arguments.len() != class.arity() {
+                if arguments.len() != class.borrow().arity() {
                     RuntimeError {
                         token: expr.paren.clone(),
-                        message: format!("Expected {} arguments but got {}", class.arity(), arguments.len()),
+                        message: format!("Expected {} arguments but got {}", class.borrow().arity(), arguments.len()),
                     }.throw();
                     return Object::from(Literal::Null);
                 }
 
-                class.call(self, vec![]).unwrap_or_else(|mut error| {
+                class.borrow().call(self, vec![]).unwrap_or_else(|mut error| {
                     error.token = expr.paren.clone();
                     error.throw();
                     Object::from(Literal::Null)
@@ -244,7 +244,7 @@ impl ExprVisitor<Object> for Interpreter {
         let object = self.evaluate(&expr.object);
 
         if let Object::Instance(instance) = object {
-            return instance.get(&expr.name).unwrap_or_else(|err| {
+            return instance.borrow().get(&expr.name).unwrap_or_else(|err| {
                 err.throw();
                 todo!("Make this a real runtime error");
             });
@@ -256,6 +256,28 @@ impl ExprVisitor<Object> for Interpreter {
         }.throw();
 
         todo!("Make this a real runtime error");
+    }
+
+    fn visit_set_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Set(expr) = expr else { unreachable!() };
+
+        let object = self.evaluate(&expr.object);
+
+        match object {
+            Object::Instance(instance) => {
+                let value = self.evaluate(&expr.value);
+                instance.borrow_mut().set(&expr.name, value.clone());
+                return value;
+            },
+            _ => {
+                RuntimeError {
+                    token: expr.name.clone(),
+                    message: "Only instances can have fields".to_string(),
+                }.throw();
+
+                todo!("Make this a real runtime error");
+            }
+        }
     }
 }
 
@@ -349,7 +371,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         let mut env = self.environment.borrow_mut();
         env.define(&data.name.lexeme, Object::Literal(Literal::Null));
         let class = Class { name: data.name.lexeme.clone() };
-        env.assign(&data.name, Object::from(class));
+        env.assign(&data.name, Object::from(Rc::new(RefCell::new(class))));
 
         Ok(())
     }

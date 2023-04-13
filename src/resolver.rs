@@ -173,6 +173,13 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
 
         self.resolve_expr(&get.object);
     }
+
+    fn visit_set_expr(&mut self, expr: &Expr) -> () {
+        let Expr::Set(set) = expr else { unreachable!() };
+
+        self.resolve_expr(&set.value);
+        self.resolve_expr(&set.object);
+    }
 }
 
 impl<'a> StmtVisitor<()> for Resolver<'a> {

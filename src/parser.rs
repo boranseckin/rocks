@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData, SetData};
 use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData, ClassData};
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -23,22 +23,22 @@ macro_rules! matches {
 /// Parses the tokens and returns the resulting expression.
 ///
 /// - Program     -> Decleration* EOF ;
+/// - Block       -> "{" Decleration* "}" ;
 /// - Decleration -> ClassDecl | FunDecl | VarDecl | Statement ;
 /// - ClassDecl   -> "class" IDENTIFIER "{" Function* "}" ;
-/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block ;
-/// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
-/// - ReturnStmt  -> "return" Expression? ";" ;
-/// - WhileStmt   -> "while" "(" Expression ")" Statement ;
-/// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
-/// - Block       -> "{" Decleration* "}" ;
 /// - FunDecl     -> "fun" Function ;
+/// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - Function    -> IDENTIFIER "(" Parameters? ")" Block ;
 /// - Parameters  -> IDENTIFIER ( "," IDENTIFIER )* ;
-/// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
+/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block ;
 /// - ExprStmt    -> Expression ";" ;
+/// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
+/// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - PrintStmt   -> "print" Expression ";" ;
+/// - ReturnStmt  -> "return" Expression? ";" ;
+/// - WhileStmt   -> "while" "(" Expression ")" Statement ;
 /// - Expression  -> Assignment ;
-/// - Assignment  -> IDENTIFIER "=" Assignment | LogicOr ;
+/// - Assignment  -> ( Call "." )? IDENTIFIER "=" Assignment | LogicOr ;
 /// - LogicOr     -> LogicAnd ( "or" LogicAnd )* ;
 /// - LogicAnd    -> Equality ( "and" Equality )* ;
 /// - Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
@@ -391,7 +391,16 @@ impl Parser {
             if let Expr::Variable(data) = expr {
                 let name = data.name;
 
-                return Ok(Expr::Assign(AssignData { name, value: Box::new(value) }))
+                return Ok(Expr::Assign(AssignData {
+                    name,
+                    value: Box::new(value)
+                }));
+            } else if let Expr::Get(data) = expr {
+                return Ok(Expr::Set(SetData {
+                    object: data.object,
+                    name: data.name,
+                    value: Box::new(value),
+                }));
             }
 
             ParseError {
