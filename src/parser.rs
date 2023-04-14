@@ -1,8 +1,8 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData, SetData, ThisData};
-use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData, ClassData};
+use crate::expr::*;
+use crate::stmt::*;
 
 type ParseResult<T> = Result<T, ParseError>;
 
