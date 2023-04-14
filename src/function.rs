@@ -17,16 +17,18 @@ pub struct Function {
     pub params: Vec<Token>,
     pub body: Vec<Stmt>,
     pub closure: Rc<RefCell<Environment>>,
+    pub is_initializer: bool,
 }
 
 impl Function {
-    pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>) -> Self {
+    pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>, is_initializer: bool) -> Self {
         match stmt {
             Stmt::Function(data) => Function {
                 name: data.name,
                 params: data.params,
                 body: data.body,
                 closure,
+                is_initializer,
             },
             _ => panic!("Expected function statement"),
         }
@@ -41,6 +43,7 @@ impl Function {
             params: self.params.clone(),
             body: self.body.clone(),
             closure: Rc::new(RefCell::new(environment)),
+            is_initializer: self.is_initializer,
         }
     }
 }
@@ -56,8 +59,21 @@ impl Callable for Function {
         });
 
         match interpreter.execute_block(&self.body, environment) {
-            Ok(_) => Ok(Object::from(Literal::Null)),
-            Err(err) => Ok(err.value),
+            Ok(_) => {
+                if self.is_initializer {
+                    let token = Token::new(Type::Identifier, "this".to_string(), None, 0);
+                    return self.closure.borrow().get_at(0, &token);
+                }
+
+                Ok(Object::from(Literal::Null))
+            },
+            Err(err) => {
+                if self.is_initializer {
+                    let token = Token::new(Type::Identifier, "this".to_string(), None, 0);
+                    return self.closure.borrow().get_at(0, &token);
+                }
+                Ok(err.value)
+            },
         }
     }
 

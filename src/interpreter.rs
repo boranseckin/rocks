@@ -4,7 +4,7 @@ use std::cell::RefCell;
 
 use crate::class::Class;
 use crate::environment::Environment;
-use crate::error::{rloxError, RuntimeError, self, ReturnError};
+use crate::error::{self, rloxError, RuntimeError, ReturnError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::function::{NativeFunction, Function};
 use crate::object::{Object, Callable};
@@ -298,7 +298,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
     fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Function(_) = stmt else { unreachable!() };
 
-        let function = Function::new(stmt.to_owned(), Rc::clone(&self.environment));
+        let function = Function::new(stmt.to_owned(), Rc::clone(&self.environment), false);
 
         self.environment.borrow_mut().define(&function.name.lexeme.clone(), Object::from(function));
 
@@ -378,8 +378,16 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
 
         let mut methods: HashMap<String, Function> = HashMap::new();
         for method in &data.methods {
-            let function = Function::new(method.clone(), Rc::clone(&self.environment));
-            methods.insert(function.name.lexeme.clone(), function);
+            if let Stmt::Function(function) = method {
+                let function = Function::new(
+                    method.clone(),
+                    Rc::clone(&self.environment),
+                    function.name.lexeme.eq("init")
+                );
+                methods.insert(function.name.lexeme.clone(), function);
+            } else {
+                unreachable!();
+            }
         }
 
         let class = Class::new(data.name.lexeme.clone(), methods);

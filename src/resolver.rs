@@ -10,6 +10,7 @@ use crate::token::Token;
 enum FunctionType {
     None,
     Function,
+    Initializer,
     Method,
 }
 
@@ -118,7 +119,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
                 if !entry {
                     ParseError {
                         token: variable.name.to_owned(),
-                        message: "Can't read local variable in its own initializer".to_string(),
+                        message: "Cannot read local variable in its own initializer".to_string(),
                     }.throw();
                 }
             }
@@ -195,7 +196,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         if let ClassType::None = self.current_class {
             ParseError {
                 token: this.keyword.clone(),
-                message: "Can't use 'this' outside of a class".to_string(),
+                message: "Cannot use 'this' outside of a class".to_string(),
             }.throw();
 
             return;
@@ -266,9 +267,17 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
 
         if let Some(value) = &return_stmt.value {
+            if let FunctionType::Initializer = self.current_function {
+                ParseError {
+                    token: return_stmt.keyword.clone(),
+                    message: "Cannot return a value from an initializer".to_string(),
+                }.throw();
+                return;
+            }
+
             self.resolve_expr(value);
         }
-    } 
+    }
 
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> () {
         let Stmt::While(while_stmt) = stmt else { unreachable!() };
@@ -292,8 +301,16 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
             .insert("this".to_string(), true);
 
         for method in &class_stmt.methods {
-            let decleration = FunctionType::Method;
-            self.resolve_function(method, decleration);
+            if let Stmt::Function(function) = method {
+                let decleration = if function.name.lexeme.eq("init") {
+                    FunctionType::Initializer
+                } else {
+                    FunctionType::Method
+                };
+                self.resolve_function(method, decleration);
+            } else {
+                unreachable!();
+            }
         }
 
         self.end_scope();

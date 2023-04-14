@@ -344,7 +344,7 @@ impl Parser {
                 if params.len() >= 255 {
                     return Err(ParseError {
                         token: self.peek().to_owned(),
-                        message: "Can't have more than 255 parameters".to_string(),
+                        message: "Cannot have more than 255 parameters".to_string(),
                     });
                 }
 
@@ -569,7 +569,7 @@ impl Parser {
                 if arguments.len() >= 255 {
                     ParseError {
                         token: self.peek().to_owned(),
-                        message: "Can't have more than 255 arguments".to_string(),
+                        message: "Cannot have more than 255 arguments".to_string(),
                     }.throw();
                 }
 

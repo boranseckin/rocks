@@ -81,6 +81,12 @@ impl From<Rc<RefCell<Class>>> for Object {
     }
 }
 
+impl From<Instance> for Object {
+    fn from(value: Instance) -> Self {
+        Object::Instance(Rc::new(RefCell::new(value)))
+    }
+}
+
 impl From<Rc<RefCell<Instance>>> for Object {
     fn from(value: Rc<RefCell<Instance>>) -> Self {
         Object::Instance(value)
