@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::mem;
 
-use crate::error::{self, rloxError, RuntimeError};
+use crate::error::{rloxError, ParseError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::interpreter::Interpreter;
@@ -13,10 +13,16 @@ enum FunctionType {
     Method,
 }
 
+enum ClassType {
+    None,
+    Class,
+}
+
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
     scopes: Vec<HashMap<String, bool>>,
     current_function: FunctionType,
+    current_class: ClassType,
 }
 
 impl<'a> Resolver<'a> {
@@ -25,6 +31,7 @@ impl<'a> Resolver<'a> {
             interpreter,
             scopes: vec![],
             current_function: FunctionType::None,
+            current_class: ClassType::None,
         }
     }
 
@@ -73,7 +80,7 @@ impl<'a> Resolver<'a> {
 
         let scope = self.scopes.last_mut().expect("stack to be not empty");
         if scope.contains_key(&name.lexeme) {
-            RuntimeError {
+            ParseError {
                 token: name.clone(),
                 message: format!("A variable is already defined with name '{}' in this scope", name.lexeme),
             }.throw();
@@ -109,7 +116,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         if let Some(scope) = self.scopes.last() {
             if let Some(entry) = scope.get(&variable.name.lexeme) {
                 if !entry {
-                    error::ParseError {
+                    ParseError {
                         token: variable.name.to_owned(),
                         message: "Can't read local variable in its own initializer".to_string(),
                     }.throw();
@@ -181,6 +188,21 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         self.resolve_expr(&set.value);
         self.resolve_expr(&set.object);
     }
+
+    fn visit_this_expr(&mut self, expr: &Expr) -> () {
+        let Expr::This(this) = expr else { unreachable!() };
+
+        if let ClassType::None = self.current_class {
+            ParseError {
+                token: this.keyword.clone(),
+                message: "Can't use 'this' outside of a class".to_string(),
+            }.throw();
+
+            return;
+        }
+
+        self.resolve_local(&this.keyword);
+    }
 }
 
 impl<'a> StmtVisitor<()> for Resolver<'a> {
@@ -237,7 +259,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         let Stmt::Return(return_stmt) = stmt else { unreachable!() };
 
         if let FunctionType::None = self.current_function {
-            RuntimeError {
+            ParseError {
                 token: return_stmt.keyword.clone(),
                 message: "Cannot return from top-level code".to_string(),
             }.throw();
@@ -258,12 +280,23 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
     fn visit_class_stmt(&mut self, stmt: &Stmt) -> () {
         let Stmt::Class(class_stmt) = stmt else { unreachable!() };
 
+        let enclosing_class = mem::replace(&mut self.current_class, ClassType::Class);
+
         self.declare(&class_stmt.name);
         self.define(&class_stmt.name);
+
+        self.begin_scope();
+        self.scopes
+            .last_mut()
+            .expect("stack to be not empty")
+            .insert("this".to_string(), true);
 
         for method in &class_stmt.methods {
             let decleration = FunctionType::Method;
             self.resolve_function(method, decleration);
         }
+
+        self.end_scope();
+        self.current_class = enclosing_class;
     }
 }

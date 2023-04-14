@@ -1,7 +1,7 @@
 use crate::error::{rloxError, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
-use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData, SetData};
+use crate::expr::{Expr, BinaryData, UnaryData, GroupingData, VariableData, AssignData, LogicalData, CallData, GetData, SetData, ThisData};
 use crate::stmt::{Stmt, PrintData, ExpressionData, VarData, WhileData, BlockData, IfData, ReturnData, FunctionData, ClassData};
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -622,6 +622,10 @@ impl Parser {
         if matches!(self, Type::Number, Type::String) {
             return Ok(Expr::Literal(self.previous().clone().literal
                 .expect("number or string to have a literal value")));
+        }
+
+        if matches!(self, Type::This) {
+            return Ok(Expr::This(ThisData { keyword: self.previous().clone() }));
         }
 
         if matches!(self, Type::Identifier) {

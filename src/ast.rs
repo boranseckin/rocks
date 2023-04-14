@@ -87,6 +87,10 @@ impl ExprVisitor<String> for ASTPrinter {
     fn visit_set_expr(&mut self, _expr: &Expr) -> String {
         todo!()
     }
+
+    fn visit_this_expr(&mut self, _expr: &Expr) -> String {
+        "this".to_string()
+    }
 }
 
 impl StmtVisitor<String> for ASTPrinter {

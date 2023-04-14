@@ -31,6 +31,18 @@ impl Function {
             _ => panic!("Expected function statement"),
         }
     }
+
+    pub fn bind(&mut self, instance: Object) -> Self {
+        let mut environment = Environment::new(Some(Rc::clone(&self.closure)));
+        environment.define("this", instance);
+
+        Function {
+            name: self.name.clone(),
+            params: self.params.clone(),
+            body: self.body.clone(),
+            closure: Rc::new(RefCell::new(environment)),
+        }
+    }
 }
 
 impl Callable for Function {

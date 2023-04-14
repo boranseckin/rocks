@@ -72,8 +72,10 @@ impl Environment {
             return enclosing.borrow().get(name);
         }
 
-        let message = format!("Undefined variable '{}'", name.lexeme);
-        Err(RuntimeError { token: name.clone(), message })
+        Err(RuntimeError {
+            token: name.clone(),
+            message: format!("Undefined variable '{}'", name.lexeme)
+        })
     }
 
     pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, RuntimeError> {

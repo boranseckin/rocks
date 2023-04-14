@@ -58,20 +58,17 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn get(&self, name: &Token) -> Result<Object, RuntimeError> {
-        if self.fields.contains_key(&name.lexeme) {
-            return Ok(self.fields.get(&name.lexeme).unwrap().clone());
+    pub fn get(&self, name: &Token, instance: &Object) -> Result<Object, RuntimeError> {
+        if let Some(field) = self.fields.get(&name.lexeme) {
+            Ok(field.clone())
+        } else if let Some(mut method) = self.class.borrow().get_method(&name.lexeme) {
+            Ok(Object::from(method.bind(instance.clone())))
+        } else {
+            Err(RuntimeError {
+                token: name.clone(),
+                message: format!("Undefined property '{}'", name.lexeme),
+            })
         }
-
-        if let Some(method) = self.class.borrow().get_method(&name.lexeme) {
-            return Ok(Object::from(method));
-        }
-
-
-        Err(RuntimeError {
-            token: name.clone(),
-            message: format!("Undefined property '{}'", name.lexeme),
-        })
     }
 
     pub fn set(&mut self, name: &Token, value: Object) {

@@ -243,8 +243,8 @@ impl ExprVisitor<Object> for Interpreter {
         let Expr::Get(expr) = expr else { unreachable!() };
         let object = self.evaluate(&expr.object);
 
-        if let Object::Instance(instance) = object {
-            return instance.borrow().get(&expr.name).unwrap_or_else(|err| {
+        if let Object::Instance(ref instance) = object {
+            return instance.borrow().get(&expr.name, &object).unwrap_or_else(|err| {
                 err.throw();
                 todo!("Make this a real runtime error");
             });
@@ -278,6 +278,12 @@ impl ExprVisitor<Object> for Interpreter {
                 todo!("Make this a real runtime error");
             }
         }
+    }
+
+    fn visit_this_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::This(expr) = expr else { unreachable!() };
+
+        self.lookup_variable(&expr.keyword)
     }
 }
 
