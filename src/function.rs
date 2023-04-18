@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
-
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
 use crate::object::{Object, Callable};

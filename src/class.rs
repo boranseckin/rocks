@@ -55,6 +55,8 @@ impl Callable for Class {
         if let Some(mut initializer) = self.get_method("init") {
             let object = Object::from(instance.clone());
             initializer.bind(object).call(interpreter, arguments)?;
+        } else {
+            unreachable!();
         }
 
         return Ok(Object::from(Rc::new(RefCell::new(instance))));

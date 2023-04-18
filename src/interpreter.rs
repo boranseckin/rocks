@@ -200,7 +200,7 @@ impl ExprVisitor<Object> for Interpreter {
                     return Object::from(Literal::Null);
                 }
 
-                class.borrow().call(self, vec![]).unwrap_or_else(|mut error| {
+                class.borrow().call(self, arguments).unwrap_or_else(|mut error| {
                     error.token = expr.paren.clone();
                     error.throw();
                     Object::from(Literal::Null)
