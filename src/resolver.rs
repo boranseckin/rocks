@@ -111,7 +111,7 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> ExprVisitor<()> for Resolver<'a> {
-    fn visit_variable_expr(&mut self, expr: &Expr) -> () {
+    fn visit_variable_expr(&mut self, expr: &Expr) {
         let Expr::Variable(variable) = expr else { unreachable!() };
 
         if let Some(scope) = self.scopes.last() {
@@ -128,46 +128,46 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         self.resolve_local(&variable.name);
     }
 
-    fn visit_assign_expr(&mut self, expr: &Expr) -> () {
+    fn visit_assign_expr(&mut self, expr: &Expr) {
         let Expr::Assign(assign) = expr else { unreachable!() };
 
         self.resolve_expr(&assign.value);
         self.resolve_local(&assign.name);
     }
 
-    fn visit_literal_expr(&mut self, expr: &Expr) -> () {
+    fn visit_literal_expr(&mut self, expr: &Expr) {
         let Expr::Literal(_) = expr else { unreachable!() };
 
         return;
     }
 
-    fn visit_logical_expr(&mut self, expr: &Expr) -> () {
+    fn visit_logical_expr(&mut self, expr: &Expr) {
         let Expr::Logical(logical) = expr else { unreachable!() };
 
         self.resolve_expr(&logical.left);
         self.resolve_expr(&logical.right);
     }
 
-    fn visit_unary_expr(&mut self, expr: &Expr) -> () {
+    fn visit_unary_expr(&mut self, expr: &Expr) {
         let Expr::Unary(unary) = expr else { unreachable!() };
 
         self.resolve_expr(&unary.expr);
     }
 
-    fn visit_binary_expr(&mut self, expr: &Expr) -> () {
+    fn visit_binary_expr(&mut self, expr: &Expr) {
         let Expr::Binary(binary) = expr else { unreachable!() };
 
         self.resolve_expr(&binary.left);
         self.resolve_expr(&binary.right);
     }
 
-    fn visit_grouping_expr(&mut self, expr: &Expr) -> () {
+    fn visit_grouping_expr(&mut self, expr: &Expr) {
         let Expr::Grouping(grouping) = expr else { unreachable!() };
 
         self.resolve_expr(&grouping.expr);
     }
 
-    fn visit_call_expr(&mut self, expr: &Expr) -> () {
+    fn visit_call_expr(&mut self, expr: &Expr) {
         let Expr::Call(call) = expr else { unreachable!() };
 
         self.resolve_expr(&call.callee);
@@ -177,20 +177,20 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         }
     }
 
-    fn visit_get_expr(&mut self, expr: &Expr) -> () {
+    fn visit_get_expr(&mut self, expr: &Expr) {
         let Expr::Get(get) = expr else { unreachable!() };
 
         self.resolve_expr(&get.object);
     }
 
-    fn visit_set_expr(&mut self, expr: &Expr) -> () {
+    fn visit_set_expr(&mut self, expr: &Expr) {
         let Expr::Set(set) = expr else { unreachable!() };
 
         self.resolve_expr(&set.value);
         self.resolve_expr(&set.object);
     }
 
-    fn visit_this_expr(&mut self, expr: &Expr) -> () {
+    fn visit_this_expr(&mut self, expr: &Expr) {
         let Expr::This(this) = expr else { unreachable!() };
 
         if let ClassType::None = self.current_class {
@@ -207,7 +207,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
 }
 
 impl<'a> StmtVisitor<()> for Resolver<'a> {
-    fn visit_block_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Block(block) = stmt else { unreachable!() };
 
         self.begin_scope();
@@ -215,7 +215,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         self.end_scope();
     }
 
-    fn visit_var_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_var_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Var(var) = stmt else { unreachable!() };
 
         self.declare(&var.name);
@@ -225,7 +225,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         self.define(&var.name);
     }
 
-    fn visit_function_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_function_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Function(function) = stmt else { unreachable!() };
 
         self.declare(&function.name);
@@ -234,13 +234,13 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         self.resolve_function(stmt, FunctionType::Function);
     }
 
-    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Expression(expr) = stmt else { unreachable!() };
 
         self.resolve_expr(&expr.expr);
     }
 
-    fn visit_if_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) {
         let Stmt::If(if_stmt) = stmt else { unreachable!() };
 
         self.resolve_expr(&if_stmt.condition);
@@ -250,13 +250,13 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
     }
 
-    fn visit_print_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_print_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Print(print) = stmt else { unreachable!() };
 
         self.resolve_expr(&print.expr);
     }
 
-    fn visit_return_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_return_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Return(return_stmt) = stmt else { unreachable!() };
 
         if let FunctionType::None = self.current_function {
@@ -279,14 +279,14 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
     }
 
-    fn visit_while_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) {
         let Stmt::While(while_stmt) = stmt else { unreachable!() };
 
         self.resolve_expr(&while_stmt.condition);
         self.resolve_stmt(&while_stmt.body);
     }
 
-    fn visit_class_stmt(&mut self, stmt: &Stmt) -> () {
+    fn visit_class_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Class(class_stmt) = stmt else { unreachable!() };
 
         let enclosing_class = mem::replace(&mut self.current_class, ClassType::Class);

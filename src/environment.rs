@@ -26,12 +26,12 @@ impl Environment {
 
     fn ancestor(&self, distance: usize) -> Rc<RefCell<Environment>> {
         let parent = self.enclosing.clone()
-            .expect(&format!("enclosing environment to exist at depth {}", 1));
+            .unwrap_or_else(|| panic!("enclosing environment to exist at depth {}", 1));
         let mut environment = Rc::clone(&parent);
 
         for i in 1..distance {
             let parent = environment.borrow().enclosing.clone()
-                .expect(&format!("enclosing environment to exist at depth {}", i));
+                .unwrap_or_else(|| panic!("enclosing environment to exist at depth {}", i));
             environment = Rc::clone(&parent);
         }
 

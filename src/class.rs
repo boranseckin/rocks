@@ -21,10 +21,7 @@ impl Class {
     }
 
     pub fn get_method(&self, name: &str) -> Option<Function> {
-        return match self.methods.get(name) {
-            Some(method) => Some(method.clone()),
-            None => None,
-        };
+        return self.methods.get(name).cloned();
     }
 }
 

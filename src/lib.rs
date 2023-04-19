@@ -1,3 +1,5 @@
+#![allow(clippy::needless_return)]
+
 use std::{fs, process};
 use std::io::{self, Write};
 

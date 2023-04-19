@@ -36,7 +36,7 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.execute(statement).unwrap_or_else(|_err| { /* Do nothing */ });
+            self.execute(statement).unwrap_or(/* Do nothing */ ());
         }
     }
  
@@ -334,7 +334,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         let Stmt::Return(data) = stmt else { unreachable!() };
 
         let value = if let Some(expr) = &data.value {
-            self.evaluate(&expr)
+            self.evaluate(expr)
         } else {
             Object::from(Literal::Null)
         };
