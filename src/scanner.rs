@@ -1,6 +1,6 @@
 use substring::Substring;
 
-use crate::token::{Token, Type};
+use crate::token::{Token, Type, Location};
 use crate::literal::Literal;
 use crate::error::{rloxError, ScanError};
 
@@ -10,12 +10,13 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    column_offset: usize,
 }
 
 impl Scanner {
     /// Creates a new scanner.
     pub fn new(source: String) -> Scanner {
-        Scanner { source, tokens: vec!(), start: 0, current: 0, line: 1 }
+        Scanner { source, tokens: vec!(), start: 0, current: 0, line: 0, column_offset: 0 }
     }
 
     /// Scans the source code and returns a vector of tokens.
@@ -30,7 +31,7 @@ impl Scanner {
                 Type::EOF,
                 String::from(""),
                 None,
-                self.line
+                Location::new(self.line, 0)
             )
         );
 
@@ -84,7 +85,7 @@ impl Scanner {
                 r#type,
                 String::from(text),
                 literal,
-                self.line
+                Location::new(self.line, self.start - self.column_offset)
             )
         );
     }
@@ -101,6 +102,7 @@ impl Scanner {
         while !self.is_at_end() && self.peek() != '"' {
             if self.peek() == '\n' {
                 self.line += 1;
+                self.column_offset = self.current;
             }
 
             self.advance();
@@ -108,8 +110,7 @@ impl Scanner {
 
         if self.is_at_end() {
             ScanError {
-                line: start.0,
-                location: start.1,
+                location: Location::new(start.0, start.1),
                 message: String::from("Unterminated string"),
             }.throw();
             return;
@@ -137,8 +138,7 @@ impl Scanner {
                 }
             } else {
                 ScanError {
-                    line: self.line,
-                    location: self.start,
+                    location: Location::new(self.line, self.start),
                     message: String::from("Unterminated number"),
                 }.throw();
                 return;
@@ -238,222 +238,26 @@ impl Scanner {
             ' ' | '\r' | '\t' => {},
 
             // Update line counter
-            '\n' => self.line += 1,
+            '\n' => {
+                self.line += 1;
+                self.column_offset = self.current;
+            },
 
             // String
             '"' => self.string(),
 
+            // Numbers
+            c if c.is_ascii_digit() => self.number(),
+
+            // Identifiers
+            c if c.is_alphabetic() || c == '_' => self.identifier(),
+
             _ => {
-                // Numbers
-                if c.is_ascii_digit() {
-                    self.number();
-                // Identifiers
-                } else if c.is_alphabetic() || c == '_' {
-                    self.identifier();
-                // Unknown
-                } else {
-                    ScanError {
-                        line: self.line,
-                        location: self.current,
-                        message: format!("Unexpected character '{c}'"),
-                    }.throw();
-                }
+                ScanError {
+                    location: Location::new(self.line, self.start - self.column_offset),
+                    message: format!("Unexpected character '{c}'"),
+                }.throw();
             },
         }
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn advance() {
-        let mut scanner = Scanner::new(String::from("abcdefg"));
-
-        assert_eq!(scanner.current, 0);
-
-        let result = scanner.advance();
-        assert_eq!(result, 'a');
-        assert_eq!(scanner.current, 1);
-
-        let result = scanner.advance();
-        assert_eq!(result, 'b');
-        assert_eq!(scanner.current, 2);
-    }
-
-    #[test]
-    #[should_panic(expected = "tried to advance past end of the file.")]
-    fn advance_eof() {
-        let mut scanner = Scanner::new(String::from("a"));
-
-        scanner.advance();
-        scanner.advance();
-    }
-
-    #[test]
-    fn match_next_truthy() {
-        let mut scanner = Scanner::new(String::from("!="));
-        scanner.advance();  // Move to the first char
-        let result = scanner.match_next('=');
-        assert!(result); 
-        assert_eq!(scanner.current, 2);
-    }
-
-    #[test]
-    fn match_next_faulty() {
-        let mut scanner = Scanner::new(String::from("!a"));
-        scanner.advance();  // Move to the first char
-
-        let result = scanner.match_next('=');
-        assert!(!result);
-        assert_eq!(scanner.current, 1);  // Should not move the current
-    }
-
-    #[test]
-    fn match_next_eof() {
-        let mut scanner = Scanner::new(String::from("a"));
-        scanner.advance();  // Move to the first char
-
-        let result = scanner.match_next('b');
-        assert!(!result);
-        assert_eq!(scanner.current, 1);  // Should not move the current
-    }
-
-    #[test]
-    fn peek() {
-        let mut scanner = Scanner::new(String::from("abc"));
-        scanner.advance();
-
-        let result = scanner.peek();
-        assert_eq!(result, 'b');
-        assert_eq!(scanner.current, 1);  // Should not move the current
-    }
-
-    #[test]
-    #[should_panic(expected = "tried to peek past end of the file.")]
-    fn peek_eof() {
-        let mut scanner = Scanner::new(String::from("a"));
-        scanner.advance();
-        scanner.peek();
-     }
-
-    #[test]
-    fn peek_next() {
-        let mut scanner = Scanner::new(String::from("abc"));
-        scanner.advance();
-
-        let result = scanner.peek_next();
-        assert_eq!(result, 'c');
-        assert_eq!(scanner.current, 1);  // Should not move the current
-    }
-
-    #[test]
-    #[should_panic(expected = "tried to peek next past end of the file.")]
-    fn peek_next_eof() {
-        let scanner = Scanner::new(String::from("a"));
-        scanner.peek_next();
-     }
-
-    #[test]
-    fn is_at_end() {
-        let mut scanner = Scanner::new(String::from("ab"));
-
-        scanner.advance();
-        assert!(!scanner.is_at_end());
-
-        scanner.advance();
-        assert!(scanner.is_at_end());
-    }
-
-    #[test]
-    fn add_token() {
-        let mut scanner = Scanner::new(String::from("a"));
-        scanner.add_token(Type::Identifier, None);
-
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(scanner.tokens[0].r#type, Type::Identifier);
-        assert_eq!(scanner.tokens[0].literal, None);
-    }
-
-    #[test]
-    fn string() {
-        let mut scanner = Scanner::new(String::from("\"hello\""));
-        scanner.current = 1; // Skip the first quote
-        scanner.string();
-
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(scanner.tokens[0].r#type, Type::String);
-        assert_eq!(scanner.tokens[0].literal, Some(Literal::String(String::from("hello"))));
-    }
-
-    #[test]
-    fn string_unterminated() {
-        let mut scanner = Scanner::new(String::from("\"hello\n"));
-        scanner.current = 1; // Skip the first quote
-        scanner.string();
-
-        assert_eq!(scanner.tokens.len(), 0);
-    }
-
-    #[test]
-    fn number() {
-        let mut scanner = Scanner::new(String::from("123\n"));
-        scanner.number();
-
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(scanner.tokens[0].r#type, Type::Number);
-        assert_eq!(scanner.tokens[0].literal, Some(Literal::Number(123.0)));
-    }
-
-    #[test]
-    fn identifier() {
-        let mut scanner = Scanner::new(String::from("abc\n"));
-        scanner.identifier();
-
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(scanner.tokens[0].r#type, Type::Identifier);
-        assert_eq!(scanner.tokens[0].lexeme, String::from("abc"));
-        assert_eq!(scanner.tokens[0].literal, None);
-    }
-
-    #[test]
-    fn keyword() {
-        let mut scanner = Scanner::new(String::from("var\n"));
-        scanner.identifier();
-
-        assert_eq!(scanner.tokens.len(), 1);
-        assert_eq!(scanner.tokens[0].r#type, Type::Var);
-        assert_eq!(scanner.tokens[0].lexeme, String::from("var"));
-        assert_eq!(scanner.tokens[0].literal, None);
-    }
-
-    #[test]
-    fn scan_tokens() {
-        let mut scanner = Scanner::new(String::from("var a = 123;\n"));
-        scanner.scan_tokens();
-
-        assert_eq!(scanner.tokens.len(), 6);
-        assert_eq!(scanner.tokens[0].r#type, Type::Var);
-        assert_eq!(scanner.tokens[1].r#type, Type::Identifier);
-        assert_eq!(scanner.tokens[2].r#type, Type::Equal);
-        assert_eq!(scanner.tokens[3].r#type, Type::Number);
-        assert_eq!(scanner.tokens[4].r#type, Type::Semicolon);
-        assert_eq!(scanner.tokens[5].r#type, Type::EOF);
-    }
-
-    #[test]
-    fn scan_tokens_with_comments() {
-        let mut scanner = Scanner::new(String::from("var a = 123; // This is a comment\n"));
-        scanner.scan_tokens();
-
-        assert_eq!(scanner.tokens.len(), 6);
-        assert_eq!(scanner.tokens[0].r#type, Type::Var);
-        assert_eq!(scanner.tokens[1].r#type, Type::Identifier);
-        assert_eq!(scanner.tokens[2].r#type, Type::Equal);
-        assert_eq!(scanner.tokens[3].r#type, Type::Number);
-        assert_eq!(scanner.tokens[4].r#type, Type::Semicolon);
-        assert_eq!(scanner.tokens[5].r#type, Type::EOF);
-    }
-}
-

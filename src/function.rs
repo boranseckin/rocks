@@ -7,7 +7,7 @@ use crate::interpreter::Interpreter;
 use crate::object::{Object, Callable};
 use crate::error::RuntimeError;
 use crate::stmt::Stmt;
-use crate::token::{Token, Type};
+use crate::token::{Token, Type, Location};
 use crate::literal::Literal;
 
 #[derive(Debug, Clone)]
@@ -60,7 +60,7 @@ impl Callable for Function {
         match interpreter.execute_block(&self.body, environment) {
             Ok(_) => {
                 if self.is_initializer {
-                    let token = Token::new(Type::Identifier, "this".to_string(), None, 0);
+                    let token = Token::new(Type::Identifier, "this".to_string(), None, Location::new(0, 0));
                     return self.closure.borrow().get_at(0, &token);
                 }
 
@@ -68,7 +68,7 @@ impl Callable for Function {
             },
             Err(err) => {
                 if self.is_initializer {
-                    let token = Token::new(Type::Identifier, "this".to_string(), None, 0);
+                    let token = Token::new(Type::Identifier, "this".to_string(), None, Location::new(0, 0));
                     return self.closure.borrow().get_at(0, &token);
                 }
                 Ok(err.value)
@@ -107,7 +107,7 @@ impl NativeFunction {
     pub fn get_globals() -> Vec<NativeFunction> {
         vec![
             NativeFunction {
-                name: Token::new(Type::Identifier, "clock".to_owned(), None, 0),
+                name: Token::new(Type::Identifier, "clock".to_owned(), None, Location::new(0, 0)),
                 function: |_, _| {
                     let now = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -117,7 +117,7 @@ impl NativeFunction {
                 },
             },
             NativeFunction {
-                name: Token::new(Type::Identifier, "input".to_owned(), None, 0),
+                name: Token::new(Type::Identifier, "input".to_owned(), None, Location::new(0, 0)),
                 function: |_, _| {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();

@@ -25,13 +25,31 @@ pub enum Type {
   EOF
 }
 
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
+pub struct Location {
+    pub line: usize,
+    pub column: usize,
+}
+
+impl Location {
+    pub fn new(line: usize, column: usize) -> Self {
+        Location { line, column }
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
 /// Represents a token in the language.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Token {
     pub r#type: Type,
     pub lexeme: String, // String representation of the token
     pub literal: Option<Literal>,
-    pub line: usize,
+    pub location: Location,
 }
 
 impl Token {
@@ -40,15 +58,15 @@ impl Token {
         r#type: Type,
         lexeme: String,
         literal: Option<Literal>,
-        line: usize
+        location: Location,
     ) -> Token {
-        Token { r#type, lexeme, literal, line }
+        Token { r#type, lexeme, literal, location }
     }
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#?} {} {:#?} @ {}", self.r#type, self.lexeme, self.literal, self.line)
+        write!(f, "{:#?} {} {:#?} @ {}", self.r#type, self.lexeme, self.literal, self.location)
     }
 }
 
@@ -56,8 +74,6 @@ impl Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.r#type.hash(state);
         self.lexeme.hash(state);
-        self.line.hash(state);
+        self.location.hash(state);
     }
 }
-
-impl Eq for Token {}
