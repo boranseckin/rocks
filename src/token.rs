@@ -1,4 +1,5 @@
-use std::{fmt, hash::Hash};
+use std::fmt::{self, Display};
+use std::hash::Hash;
 
 use crate::literal::Literal;
 
@@ -37,7 +38,7 @@ impl Location {
     }
 }
 
-impl fmt::Display for Location {
+impl Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}:{}", self.line, self.column)
     }
@@ -64,7 +65,13 @@ impl Token {
     }
 }
 
-impl fmt::Display for Token {
+impl From<&str> for Token {
+    fn from(token: &str) -> Self {
+        Token::new(Type::Identifier, token.to_string(), None, Location::new(0, 0))
+    }
+}
+
+impl Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:#?} {} {:#?} @ {}", self.r#type, self.lexeme, self.literal, self.location)
     }

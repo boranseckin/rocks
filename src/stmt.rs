@@ -73,16 +73,18 @@ pub enum Stmt {
 impl Stmt {
     /// Accepts a visitor and returns the result of the visit.
     pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
+        use Stmt::*;
+
         match self {
-            Stmt::Expression(_) => visitor.visit_expression_stmt(self),
-            Stmt::Function(_) => visitor.visit_function_stmt(self),
-            Stmt::If(_) => visitor.visit_if_stmt(self),
-            Stmt::Print(_) => visitor.visit_print_stmt(self),
-            Stmt::Return(_) => visitor.visit_return_stmt(self),
-            Stmt::Var(_) => visitor.visit_var_stmt(self),
-            Stmt::While(_) => visitor.visit_while_stmt(self),
-            Stmt::Block(_) => visitor.visit_block_stmt(self),
-            Stmt::Class(_) => visitor.visit_class_stmt(self),
+            Expression(_) => visitor.visit_expression_stmt(self),
+            Function(_) => visitor.visit_function_stmt(self),
+            If(_) => visitor.visit_if_stmt(self),
+            Print(_) => visitor.visit_print_stmt(self),
+            Return(_) => visitor.visit_return_stmt(self),
+            Var(_) => visitor.visit_var_stmt(self),
+            While(_) => visitor.visit_while_stmt(self),
+            Block(_) => visitor.visit_block_stmt(self),
+            Class(_) => visitor.visit_class_stmt(self),
         }
     }
 }

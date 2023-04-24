@@ -1,6 +1,6 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::error::RuntimeError;
@@ -9,7 +9,7 @@ use crate::object::{Callable, Object};
 use crate::interpreter::Interpreter;
 use crate::token::Token;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
     pub methods: HashMap<String, Function>,
@@ -22,12 +22,6 @@ impl Class {
 
     pub fn get_method(&self, name: &str) -> Option<Function> {
         return self.methods.get(name).cloned();
-    }
-}
-
-impl Debug for Class {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<class {}>", self.name)
     }
 }
 
@@ -59,7 +53,7 @@ impl Callable for Class {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Instance {
     pub class: Rc<RefCell<Class>>,
     pub fields: HashMap<String, Object>,
@@ -87,12 +81,6 @@ impl Instance {
 impl From<&Rc<RefCell<Class>>> for Instance {
     fn from(value: &Rc<RefCell<Class>>) -> Self {
         Instance { class: Rc::clone(value), fields: HashMap::new() }
-    }
-}
-
-impl Debug for Instance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<instance {}>", self.class.borrow().name)
     }
 }
 

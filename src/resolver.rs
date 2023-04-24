@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::mem;
+use std::collections::HashMap;
 
 use crate::error::{rloxError, ParseError};
 use crate::expr::{Expr, ExprVisitor};

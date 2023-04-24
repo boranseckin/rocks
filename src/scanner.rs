@@ -6,7 +6,7 @@ use crate::error::{rloxError, ScanError};
 
 pub struct Scanner {
     source: String,
-    pub tokens: Vec<Token>,
+    tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,

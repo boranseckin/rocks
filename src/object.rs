@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use std::fmt::{Debug, Display};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::class::{Class, Instance};
@@ -114,6 +114,7 @@ impl Display for Object {
     }
 }
 
+/// Represents a callable object in the language.
 pub trait Callable: Debug {
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError>;
     fn arity(&self) -> usize;

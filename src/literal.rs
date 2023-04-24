@@ -65,4 +65,5 @@ impl fmt::Display for Literal {
     }
 }
 
+// This should not be used, but is required for Hashing
 impl Eq for Literal {}
