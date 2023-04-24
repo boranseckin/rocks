@@ -27,13 +27,13 @@ impl Class {
 
 impl Debug for Class {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<class {} [{:p}]>", self.name, self)
+        write!(f, "<class {}>", self.name)
     }
 }
 
 impl Display for Class {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<class {} [{:p}]>", self.name, self)
+        write!(f, "<class {}>", self.name)
     }
 }
 
@@ -47,16 +47,15 @@ impl Callable for Class {
     }
 
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
-        let instance = Instance::from(&Rc::new(RefCell::new(self.clone())));
+        let instance = Object::from(Instance::from(&Rc::new(RefCell::new(self.clone()))));
 
         if let Some(mut initializer) = self.get_method("init") {
-            let object = Object::from(instance.clone());
-            initializer.bind(object).call(interpreter, arguments)?;
+            initializer.bind(instance.clone()).call(interpreter, arguments)?;
         } else {
             unreachable!();
         }
 
-        return Ok(Object::from(Rc::new(RefCell::new(instance))));
+        return Ok(instance);
     }
 }
 
@@ -93,12 +92,12 @@ impl From<&Rc<RefCell<Class>>> for Instance {
 
 impl Debug for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<instance {} [{:p}]>", self.class.borrow().name, self)
+        write!(f, "<instance {}>", self.class.borrow().name)
     }
 }
 
 impl Display for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<instance {} [{:p}]>", self.class.borrow().name, self)
+        write!(f, "<instance {}>", self.class.borrow().name)
     }
 }
