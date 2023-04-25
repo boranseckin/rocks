@@ -10,16 +10,20 @@ use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::literal::Literal;
 
+/// Represents a function.
+/// This is a struct that wraps the function's name, parameters, and body.
+/// It also contains a reference to the environment in which it was defined.
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: Token,
-    pub params: Vec<Token>,
-    pub body: Vec<Stmt>,
-    pub closure: Rc<RefCell<Environment>>,
-    pub is_initializer: bool,
+    params: Vec<Token>,
+    body: Vec<Stmt>,
+    closure: Rc<RefCell<Environment>>,
+    is_initializer: bool,
 }
 
 impl Function {
+    /// Creates a new function.
     pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>, is_initializer: bool) -> Self {
         match stmt {
             Stmt::Function(data) => Function {
@@ -33,6 +37,8 @@ impl Function {
         }
     }
 
+    /// Binds the function to an instance by wrapping its environment.
+    /// This is used to allow the function to access the instance's fields.
     pub fn bind(&mut self, instance: Object) -> Self {
         let mut environment = Environment::new(Some(Rc::clone(&self.closure)));
         environment.define("this", instance);
@@ -48,6 +54,11 @@ impl Function {
 }
 
 impl Callable for Function {
+    /// Calls the function (or method) and returns its return value.
+    /// Function returns are handled by a special return type ([`ReturnError`](crate::error::ReturnError)).
+    /// A closure is created for the function's environment and arguments are bound to it.
+    ///
+    /// Note: Initializer methods will return the instance that they were called on.
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
         let environment = Rc::new(RefCell::new(
             Environment::new(Some(Rc::clone(&self.closure)))
@@ -85,13 +96,27 @@ impl Display for Function {
     }
 }
 
+/// Represents a native function.
+/// This is a special type of function that is used to implement built-in functions.
+/// These functions are external to the language and are implemented in Rust.
+/// They are used to provide access to the host environment.
+///
+/// Native functions are defined in the
+/// [`NativeFunction::get_globals`](NativeFunction::get_globals) method and used
+/// during the initialization of the [`Interpreter`](crate::interpreter::Interpreter::new).
+/// These functions will be available to the user in the global scope.
+///
+/// Current native functions:
+/// - `clock()` - Returns the current time in milliseconds.
+/// - `input()` - Reads a line of string from the standard input.
 #[derive(Clone)]
 pub struct NativeFunction {
     pub name: Token,
-    pub function: fn(&mut Interpreter, Vec<Object>) -> Result<Object, RuntimeError>,
+    function: fn(&mut Interpreter, Vec<Object>) -> Result<Object, RuntimeError>,
 }
 
 impl Callable for NativeFunction {
+    /// Calls the native function and returns its return value.
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
         (self.function)(interpreter, arguments)
     }
@@ -102,6 +127,7 @@ impl Callable for NativeFunction {
 }
 
 impl NativeFunction {
+    /// Returns a list of native functions with their implementations.
     pub fn get_globals() -> Vec<NativeFunction> {
         vec![
             NativeFunction {
