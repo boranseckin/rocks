@@ -122,7 +122,6 @@ use parser::Parser;
 use scanner::Scanner;
 use resolver::Resolver;
 
-
 #[allow(non_camel_case_types)]
 pub struct rocks {
     interpreter: interpreter::Interpreter,

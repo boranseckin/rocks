@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::literal::Literal;
 
-/// Represents a token in the language.
+/// Represents a token type in the language.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Type {
   // Single-character tokens.
@@ -26,6 +26,7 @@ pub enum Type {
   EOF
 }
 
+/// Represents a location in the source code.
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 pub struct Location {
     pub line: usize,
@@ -33,6 +34,7 @@ pub struct Location {
 }
 
 impl Location {
+    /// Creates a new location.
     pub fn new(line: usize, column: usize) -> Self {
         Location { line, column }
     }
@@ -47,9 +49,13 @@ impl Display for Location {
 /// Represents a token in the language.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Token {
+    /// Type of the token.
     pub r#type: Type,
-    pub lexeme: String, // String representation of the token
+    /// String representation of the token.
+    pub lexeme: String,
+    /// Literal value of the token (if any).
     pub literal: Option<Literal>,
+    /// Location of the token in the source code.
     pub location: Location,
 }
 
@@ -65,6 +71,7 @@ impl Token {
     }
 }
 
+/// Convenience methods for creating dummy tokens.
 impl From<&str> for Token {
     fn from(token: &str) -> Self {
         Token::new(Type::Identifier, token.to_string(), None, Location::new(0, 0))
@@ -73,10 +80,13 @@ impl From<&str> for Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#?} {} {:#?} @ {}", self.r#type, self.lexeme, self.literal, self.location)
+        write!(f, "{:#?} {} {:#?} @ [{}]", self.r#type, self.lexeme, self.literal, self.location)
     }
 }
 
+/// This is required for the `HashMap` to work for [`Interpreter::locals`](crate::interpreter::Interpreter).
+/// Since no two tokens can have the same type, lexeme, and location, we can use them as the key for
+/// the `HashMap`.
 impl Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.r#type.hash(state);
