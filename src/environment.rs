@@ -84,7 +84,7 @@ impl Environment {
                 Some(variable) => Ok(variable.clone()),
                 None => Err(RuntimeError {
                     token: name.clone(),
-                    message: format!("Undefined variable {} '{}'", distance, name.lexeme),
+                    message: format!("Undefined variable '{}'", name.lexeme),
                 }),
             }
         } else {
@@ -92,7 +92,7 @@ impl Environment {
                 Some(variable) => Ok(variable.clone()),
                 None => Err(RuntimeError {
                     token: name.clone(),
-                    message: format!("Undefined variable {} '{}'", distance, name.lexeme),
+                    message: format!("Undefined variable '{}'", name.lexeme),
                 }),
             }
         }
