@@ -298,6 +298,10 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
     }
 
+    fn visit_break_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Break(_) = stmt else { unreachable!() };
+    }
+
     fn visit_while_stmt(&mut self, stmt: &Stmt) {
         let Stmt::While(while_stmt) = stmt else { unreachable!() };
 

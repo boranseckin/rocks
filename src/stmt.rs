@@ -45,6 +45,10 @@ pub struct ReturnData {
     pub value: Option<Expr>,
 }
 
+/// Represents a [`break`](Stmt::Break) statement's data in the language.
+#[derive(Debug, PartialEq, Clone)]
+pub struct BreakData;
+
 /// Represents a [`var`](Stmt::Var) statement's data in the language.
 #[derive(Debug, PartialEq, Clone)]
 pub struct VarData {
@@ -106,6 +110,10 @@ pub enum Stmt {
     /// This is used to return from a function (optionally with a value).
     Return(ReturnData),
 
+    /// A break statement.
+    /// This is used to break out of a loop.
+    Break(BreakData),
+
     /// A var statement.
     /// This is used to declare a variable.
     Var(VarData),
@@ -135,6 +143,7 @@ impl Stmt {
             If(_) => visitor.visit_if_stmt(self),
             Print(_) => visitor.visit_print_stmt(self),
             Return(_) => visitor.visit_return_stmt(self),
+            Break(_) => visitor.visit_break_stmt(self),
             Var(_) => visitor.visit_var_stmt(self),
             While(_) => visitor.visit_while_stmt(self),
             Block(_) => visitor.visit_block_stmt(self),
@@ -150,6 +159,7 @@ pub trait StmtVisitor<T> {
     fn visit_if_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_print_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_return_stmt(&mut self, stmt: &Stmt) -> T;
+    fn visit_break_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_var_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> T;
     fn visit_block_stmt(&mut self, stmt: &Stmt) -> T;

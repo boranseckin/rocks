@@ -21,7 +21,7 @@ pub enum Type {
 
   // Keywords.
   And, Class, Else, False, Fun, For, If, Null, Or,
-  Print, Return, Super, This, True, Var, While,
+  Print, Return, Break, Super, This, True, Var, While,
 
   EOF
 }

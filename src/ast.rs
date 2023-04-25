@@ -181,4 +181,9 @@ impl StmtVisitor<String> for ASTPrinter {
     fn visit_class_stmt(&mut self, _stmt: &Stmt) -> String {
         todo!()
     }
+
+    fn visit_break_stmt(&mut self, stmt: &Stmt) -> String {
+        let Stmt::Break(_) = stmt else { unreachable!() };
+        "break".to_string()
+    }
 }
