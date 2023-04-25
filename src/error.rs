@@ -1,16 +1,35 @@
-use crate::{HAD_ERROR, HAD_RUNTIME_ERROR};
 use crate::object::Object;
 use crate::token::{Token, Type, Location};
 
+static mut HAD_ERROR: bool = false;
+static mut HAD_RUNTIME_ERROR: bool = false;
+
+/// Checks if an error occurred during scanning, parsing, or interpreting.
 pub fn did_error() -> bool {
     unsafe { HAD_ERROR || HAD_RUNTIME_ERROR }
 }
 
-#[allow(non_camel_case_types)]
+/// Checks if an error occurred during runtime.
+pub fn did_runtime_error() -> bool {
+    unsafe { HAD_RUNTIME_ERROR }
+}
+
+/// Resets the error flag.
+/// This is used to reset the interpreter after an error occurs when running prompts.
+pub fn reset_error() {
+    unsafe {
+        HAD_ERROR = false;
+        HAD_RUNTIME_ERROR = false;
+    }
+}
+
+/// Every error type must implement this trait.
 pub trait Error {
+    /// Prints the error message and sets the error flag.
     fn throw(&self);
 }
 
+/// Represents an error that occurs during scanning.
 #[derive(Debug)]
 pub struct ScanError {
     pub location: Location,
@@ -32,6 +51,7 @@ impl Error for ScanError {
     }
 }
 
+/// Represents an error that occurs during parsing.
 #[derive(Debug)]
 pub struct ParseError {
     pub token: Token,
@@ -63,6 +83,7 @@ impl Error for ParseError {
     }
 }
 
+/// Represents an error that occurs during resolution.
 #[derive(Debug)]
 pub struct ResolveError {
     pub token: Token,
@@ -85,6 +106,7 @@ impl Error for ResolveError {
     }
 }
 
+/// Represents an error that occurs during runtime.
 #[derive(Debug)]
 pub struct RuntimeError {
     pub token: Token,
@@ -107,7 +129,9 @@ impl Error for RuntimeError {
     }
 }
 
-/// Used to return from functions
+/// Represents a special error that is caught by the interpreter.
+/// This error is thrown when a return statement is executed. Since errors are propagated up the
+/// execution stack, the interpreter can catch it and return the value of the return statement.
 #[derive(Debug)]
 pub struct ReturnError {
     pub value: Object,

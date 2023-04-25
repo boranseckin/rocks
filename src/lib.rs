@@ -122,8 +122,6 @@ use parser::Parser;
 use scanner::Scanner;
 use resolver::Resolver;
 
-static mut HAD_ERROR: bool = false;
-static mut HAD_RUNTIME_ERROR: bool = false;
 
 #[allow(non_camel_case_types)]
 pub struct rocks {
@@ -143,13 +141,8 @@ impl rocks {
 
         self.run(contents);
 
-        unsafe {
-            if HAD_ERROR {
-                process::exit(65);
-            }
-            if HAD_RUNTIME_ERROR {
-                process::exit(70);
-            }
+        if error::did_error() {
+            process::exit(65);
         }
     }
 
@@ -162,10 +155,7 @@ impl rocks {
 
             self.run(input);
 
-            unsafe {
-                HAD_ERROR = false;
-                HAD_RUNTIME_ERROR = false;
-            }
+            error::reset_error();
         }
     }
 
