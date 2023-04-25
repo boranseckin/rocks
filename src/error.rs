@@ -19,7 +19,7 @@ pub struct ScanError {
 
 impl Error for ScanError {
     fn throw(&self) {
-        println!(
+        eprintln!(
             "[line {line}:{column}] Error: {message}",
             line = self.location.line + 1,
             column = self.location.column + 1,
@@ -41,14 +41,14 @@ pub struct ParseError {
 impl Error for ParseError {
     fn throw(&self) {
         if self.token.r#type == Type::EOF {
-            println!(
+            eprintln!(
                 "[line {line}:{column}] Error at end: {message}",
                 line = self.token.location.line,
                 column = self.token.location.column,
                 message = self.message
             );
         } else {
-            println!(
+            eprintln!(
                 "[line {line}:{column}] Error at '{lexeme}': {message}",
                 line = self.token.location.line,
                 column = self.token.location.column,
@@ -64,6 +64,28 @@ impl Error for ParseError {
 }
 
 #[derive(Debug)]
+pub struct ResolveError {
+    pub token: Token,
+    pub message: String,
+}
+
+impl Error for ResolveError {
+    fn throw(&self) {
+        eprintln!(
+            "[line {line}:{column}] Error at '{lexeme}': {message}",
+            line = self.token.location.line,
+            column = self.token.location.column,
+            lexeme = self.token.lexeme,
+            message = self.message
+        );
+
+        unsafe {
+            HAD_ERROR = true;
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct RuntimeError {
     pub token: Token,
     pub message: String,
@@ -71,7 +93,7 @@ pub struct RuntimeError {
 
 impl Error for RuntimeError {
     fn throw(&self) {
-        println!(
+        eprintln!(
             "[line {line}:{column}] Error at '{lexeme}': {message}",
             line = self.token.location.line,
             column = self.token.location.column,

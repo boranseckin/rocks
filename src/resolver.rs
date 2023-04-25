@@ -1,7 +1,7 @@
 use std::mem;
 use std::collections::HashMap;
 
-use crate::error::{Error, ParseError};
+use crate::error::{Error, ResolveError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::interpreter::Interpreter;
@@ -82,7 +82,7 @@ impl<'a> Resolver<'a> {
 
         let scope = self.scopes.last_mut().expect("stack to be not empty");
         if scope.contains_key(&name.lexeme) {
-            ParseError {
+            ResolveError {
                 token: name.clone(),
                 message: format!("A variable is already defined with name '{}' in this scope", name.lexeme),
             }.throw();
@@ -118,7 +118,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         if let Some(scope) = self.scopes.last() {
             if let Some(entry) = scope.get(&variable.name.lexeme) {
                 if !entry {
-                    ParseError {
+                    ResolveError {
                         token: variable.name.to_owned(),
                         message: "Cannot read local variable in its own initializer".to_string(),
                     }.throw();
@@ -195,7 +195,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
         let Expr::This(this) = expr else { unreachable!() };
 
         if let ClassType::None = self.current_class {
-            ParseError {
+            ResolveError {
                 token: this.keyword.clone(),
                 message: "Cannot use 'this' outside of a class".to_string(),
             }.throw();
@@ -211,11 +211,11 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
 
         match self.current_class {
             ClassType::Subclass => (),
-            ClassType::None => ParseError {
+            ClassType::None => ResolveError {
                 token: super_expr.keyword.clone(),
                 message: "Cannot use 'super' outside of a class".to_string()
             }.throw(),
-            _ => ParseError {
+            _ => ResolveError {
                 token: super_expr.keyword.clone(),
                 message: "Cannot use 'super' in a class with no superclass".to_string(),
             }.throw(),
@@ -279,7 +279,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         let Stmt::Return(return_stmt) = stmt else { unreachable!() };
 
         if let FunctionType::None = self.current_function {
-            ParseError {
+            ResolveError {
                 token: return_stmt.keyword.clone(),
                 message: "Cannot return from top-level code".to_string(),
             }.throw();
@@ -287,7 +287,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
 
         if let Some(value) = &return_stmt.value {
             if let FunctionType::Initializer = self.current_function {
-                ParseError {
+                ResolveError {
                     token: return_stmt.keyword.clone(),
                     message: "Cannot return a value from an initializer".to_string(),
                 }.throw();
@@ -316,7 +316,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         if let Some(ref superclass) = class_stmt.superclass {
             if let Expr::Variable(variable) = superclass {
                 if class_stmt.name.lexeme == variable.name.lexeme {
-                    ParseError {
+                    ResolveError {
                         token: variable.name.clone(),
                         message: "A class cannot inherit from itself".to_string(),
                     }.throw();
