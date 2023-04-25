@@ -4,7 +4,7 @@ use std::cell::RefCell;
 
 use crate::class::Class;
 use crate::environment::Environment;
-use crate::error::{self, rloxError, RuntimeError, ReturnError};
+use crate::error::{self, Error, RuntimeError, ReturnError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::function::{NativeFunction, Function};
 use crate::object::{Object, Callable};
@@ -154,7 +154,6 @@ impl ExprVisitor<Object> for Interpreter {
         let Expr::Call(expr) = expr else { unreachable!() };
         let callee = self.evaluate(expr.callee.as_ref());
 
-        // TODO: Try to avoid clone here
         let arguments: Vec<Object> = expr.arguments
             .iter()
             .map(|expr| self.evaluate(expr))

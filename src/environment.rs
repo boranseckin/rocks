@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::object::Object;
 use crate::token::Token;
-use crate::error::{RuntimeError, rloxError};
+use crate::error::{RuntimeError, Error};
 
 #[derive(Debug, Clone)]
 pub struct Environment {

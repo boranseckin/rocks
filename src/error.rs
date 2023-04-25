@@ -7,7 +7,7 @@ pub fn did_error() -> bool {
 }
 
 #[allow(non_camel_case_types)]
-pub trait rloxError {
+pub trait Error {
     fn throw(&self);
 }
 
@@ -17,7 +17,7 @@ pub struct ScanError {
     pub message: String,
 }
 
-impl rloxError for ScanError {
+impl Error for ScanError {
     fn throw(&self) {
         println!(
             "[line {line}:{column}] Error: {message}",
@@ -38,7 +38,7 @@ pub struct ParseError {
     pub message: String,
 }
 
-impl rloxError for ParseError {
+impl Error for ParseError {
     fn throw(&self) {
         if self.token.r#type == Type::EOF {
             println!(
@@ -69,7 +69,7 @@ pub struct RuntimeError {
     pub message: String,
 }
 
-impl rloxError for RuntimeError {
+impl Error for RuntimeError {
     fn throw(&self) {
         println!(
             "[line {line}:{column}] Error at '{lexeme}': {message}",

@@ -1,14 +1,14 @@
 [package]
-name = "rlox"
-description = "A Rust Implementation of the Lox Programming Language"
+name = "rocks-lang"
+description = "Rust implementation of Crafting Interpreters' Lox Language."
 version = "0.1.0"
 edition = "2021"
 authors = ["Boran Seckin <boran@boranseckin.com>"]
-repository = "https://github.com/boranseckin/rlox"
+repository = "https://github.com/boranseckin/rocks"
 license = "MIT"
 
 [[bin]]
-name = "rlox"
+name = "rocks"
 path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

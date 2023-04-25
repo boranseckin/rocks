@@ -26,13 +26,13 @@ static mut HAD_ERROR: bool = false;
 static mut HAD_RUNTIME_ERROR: bool = false;
 
 #[allow(non_camel_case_types)]
-pub struct rlox {
+pub struct rocks {
     interpreter: interpreter::Interpreter,
 }
 
-impl rlox {
+impl rocks {
     pub fn new() -> Self {
-        rlox {
+        rocks {
             interpreter: interpreter::Interpreter::new(),
         }
     }
@@ -95,7 +95,7 @@ impl rlox {
     }
 }
 
-impl Default for rlox {
+impl Default for rocks {
     fn default() -> Self {
         Self::new()
     }

@@ -1,7 +1,7 @@
 use std::mem;
 use std::collections::HashMap;
 
-use crate::error::{rloxError, ParseError};
+use crate::error::{Error, ParseError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::interpreter::Interpreter;

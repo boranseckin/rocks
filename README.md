@@ -1,2 +1,2 @@
-# rlox
-A Rust implementation of [Crafting Interpreters](https://craftinginterpreters.com/)
+# rocks
+Rust implementation of [Crafting Interpreters](https://craftinginterpreters.com/)' Lox Language.

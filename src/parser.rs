@@ -1,4 +1,4 @@
-use crate::error::{rloxError, ParseError};
+use crate::error::{Error, ParseError};
 use crate::token::{Token, Type};
 use crate::literal::Literal;
 use crate::expr::*;

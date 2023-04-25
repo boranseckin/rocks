@@ -2,7 +2,7 @@ use substring::Substring;
 
 use crate::token::{Token, Type, Location};
 use crate::literal::Literal;
-use crate::error::{rloxError, ScanError};
+use crate::error::{Error, ScanError};
 
 pub struct Scanner {
     source: String,
