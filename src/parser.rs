@@ -20,8 +20,12 @@ macro_rules! matches {
     }
 }
 
-/// Parses the tokens and returns the resulting expression.
-///
+/// Represents the parses that parses the tokens and returns the resulting
+/// expression according to the following grammer. This grammer is traversed in
+/// a top-down, left-to-right manner. The lower rule is, the higher precedence
+/// it has. Therefore the parser will start parsing from the top rule but will
+/// go down to the lower rules if it finds a match.
+/// ```text
 /// - Program     -> Decleration* EOF ;
 /// - Block       -> "{" Decleration* "}" ;
 /// - Decleration -> ClassDecl | FunDecl | VarDecl | Statement ;
@@ -49,17 +53,18 @@ macro_rules! matches {
 /// - Arguments   -> Expression ( "," Expression )* ;
 /// - Call        -> Primary ( "(" Arguments? ")" | "." IDENTIFIER )* ;
 /// - Primary     -> NUMBER | STRING | "false" | "true" | "null" | "this" | "(" Expression ")" | IDENTIFIER | "super" "." IDENTIFIER ;
+/// ```
 pub struct Parser {
+    /// The tokens to parse.
     tokens: Vec<Token>,
+    /// The current token index.
     current: u32,
 }
 
 impl Parser {
+    /// Creates a new parser with the given tokens.
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser {
-            tokens,
-            current: 0,
-        }
+        Parser { tokens, current: 0 }
     }
 
     /// Parses the tokens and returns the resulting expression.
@@ -108,7 +113,8 @@ impl Parser {
         self.previous()
     }
 
-    /// Consumes the next token if it is of the given type.
+    /// Consumes the next token and returns it, if it is of the given type.
+    /// See `matches!` macro for matching multiple types.
     fn consume(&mut self, r#type: Type, message: &str) -> ParseResult<&Token> {
         if self.check(r#type) {
             return Ok(self.advance());
