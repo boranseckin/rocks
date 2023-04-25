@@ -65,6 +65,12 @@ pub struct ThisData {
     pub keyword: Token,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct SuperData {
+    pub keyword: Token,
+    pub method: Token,
+}
+
 /// Represents an expression in the language.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
@@ -79,6 +85,7 @@ pub enum Expr {
     Get(GetData),
     Set(SetData),
     This(ThisData),
+    Super(SuperData),
 }
 
 impl Expr {
@@ -98,6 +105,7 @@ impl Expr {
             Get(_) => visitor.visit_get_expr(self),
             Set(_) => visitor.visit_set_expr(self),
             This(_) => visitor.visit_this_expr(self),
+            Super(_) => visitor.visit_super_expr(self),
         }
     }
 }
@@ -114,4 +122,5 @@ pub trait ExprVisitor<T> {
     fn visit_get_expr(&mut self, expr: &Expr) -> T;
     fn visit_set_expr(&mut self, expr: &Expr) -> T;
     fn visit_this_expr(&mut self, expr: &Expr) -> T;
+    fn visit_super_expr(&mut self, expr: &Expr) -> T;
 }

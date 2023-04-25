@@ -285,6 +285,33 @@ impl ExprVisitor<Object> for Interpreter {
 
         self.lookup_variable(&expr.keyword)
     }
+
+    fn visit_super_expr(&mut self, expr: &Expr) -> Object {
+        let Expr::Super(super_expr) = expr else { unreachable!() };
+
+        // Resolver would have catched if super was used incorrectly.
+        // It is okay to unwrap everythin here.
+        let distance = self.locals.get(&super_expr.keyword).unwrap();
+        let superclass = self.environment.borrow().get_at(*distance, &Token::from("super")).unwrap();
+
+        let object = self.environment.borrow().get_at(distance - 1, &Token::from("this")).unwrap();
+
+        // TODO: Make this unwrapping better
+        if let Object::Class(superclass) = superclass {
+            let method = superclass.borrow().get_method(&super_expr.method.lexeme);
+            if let Some(mut method) = method {
+                return Object::from(method.bind(object));
+            } else {
+                RuntimeError {
+                    token: super_expr.method.clone(),
+                    message: format!("Undefined property '{}'", super_expr.method.lexeme)
+                }.throw();
+                return Object::Literal(Literal::Null);
+            }
+        } else {
+            unreachable!();
+        }
+    }
 }
 
 impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
@@ -374,7 +401,28 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
     fn visit_class_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
         let Stmt::Class(data) = stmt else { unreachable!() };
 
+        let superclass = data.superclass.as_ref().map(|superclass| self.evaluate(superclass));
+        if let Some(ref superclass) = superclass {
+            match superclass {
+                Object::Class(_) => {},
+                _ => {
+                    RuntimeError {
+                        // This is reporting the lexeme of the class name,
+                        // it is non-trivial to get the superclass name.
+                        token: data.name.clone(),
+                        message: "Superclass must be a class".to_string()
+                    }.throw();
+                },
+            }
+        }
+
         self.environment.borrow_mut().define(&data.name.lexeme, Object::Literal(Literal::Null));
+
+        if let Some(ref superclass) = superclass {
+            let mut environment = Environment::new(Some(Rc::clone(&self.environment)));
+            environment.define("super", superclass.clone());
+            self.environment = Rc::new(RefCell::new(environment));
+        }
 
         let mut methods: HashMap<String, Function> = HashMap::new();
         for method in &data.methods {
@@ -390,7 +438,13 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
             }
         }
 
-        let class = Class::new(data.name.lexeme.clone(), methods);
+        let class = Class::new(data.name.lexeme.clone(), superclass.clone(), methods);
+
+        if superclass.is_some() {
+            let enclosing = self.environment.borrow().enclosing.clone().expect("enclosing to exist");
+            self.environment = enclosing;
+        }
+
         self.environment.borrow_mut().assign(&data.name, Object::from(Rc::new(RefCell::new(class))));
 
         Ok(())

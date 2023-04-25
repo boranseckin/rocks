@@ -17,6 +17,7 @@ enum FunctionType {
 enum ClassType {
     None,
     Class,
+    Subclass
 }
 
 pub struct Resolver<'a> {
@@ -204,6 +205,24 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
 
         self.resolve_local(&this.keyword);
     }
+
+    fn visit_super_expr(&mut self, expr: &Expr) {
+        let Expr::Super(super_expr) = expr else { unreachable!() };
+
+        match self.current_class {
+            ClassType::Subclass => (),
+            ClassType::None => ParseError {
+                token: super_expr.keyword.clone(),
+                message: "Cannot use 'super' outside of a class".to_string()
+            }.throw(),
+            _ => ParseError {
+                token: super_expr.keyword.clone(),
+                message: "Cannot use 'super' in a class with no superclass".to_string(),
+            }.throw(),
+        }
+
+        self.resolve_local(&super_expr.keyword);
+    }
 }
 
 impl<'a> StmtVisitor<()> for Resolver<'a> {
@@ -294,6 +313,29 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         self.declare(&class_stmt.name);
         self.define(&class_stmt.name);
 
+        if let Some(ref superclass) = class_stmt.superclass {
+            if let Expr::Variable(variable) = superclass {
+                if class_stmt.name.lexeme == variable.name.lexeme {
+                    ParseError {
+                        token: variable.name.clone(),
+                        message: "A class cannot inherit from itself".to_string(),
+                    }.throw();
+                }
+            } else {
+                unreachable!();
+            }
+
+            self.current_class = ClassType::Subclass;
+
+            self.resolve_expr(superclass);
+
+            self.begin_scope();
+            self.scopes
+                .last_mut()
+                .expect("stack to be not empty")
+                .insert("super".to_string(), true);
+        }
+
         self.begin_scope();
         self.scopes
             .last_mut()
@@ -314,6 +356,11 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
 
         self.end_scope();
+
+        if class_stmt.superclass.is_some() {
+            self.end_scope();
+        }
+
         self.current_class = enclosing_class;
     }
 }

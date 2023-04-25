@@ -12,16 +12,23 @@ use crate::token::Token;
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
+    pub superclass: Option<Object>,
     pub methods: HashMap<String, Function>,
 }
 
 impl Class {
-    pub fn new(name: String, methods: HashMap<String, Function>) -> Self {
-        Class { name, methods }
+    pub fn new(name: String, superclass: Option<Object>, methods: HashMap<String, Function>) -> Self {
+        Class { name, superclass, methods }
     }
 
     pub fn get_method(&self, name: &str) -> Option<Function> {
-        return self.methods.get(name).cloned();
+        if let Some(method) = self.methods.get(name) {
+            return Some(method.clone());
+        } else if let Some(Object::Class(ref superclass)) = self.superclass {
+            return superclass.borrow().get_method(name);
+        } else {
+            return None;
+        }
     }
 }
 
@@ -45,8 +52,6 @@ impl Callable for Class {
 
         if let Some(mut initializer) = self.get_method("init") {
             initializer.bind(instance.clone()).call(interpreter, arguments)?;
-        } else {
-            unreachable!();
         }
 
         return Ok(instance);

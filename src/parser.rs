@@ -25,7 +25,7 @@ macro_rules! matches {
 /// - Program     -> Decleration* EOF ;
 /// - Block       -> "{" Decleration* "}" ;
 /// - Decleration -> ClassDecl | FunDecl | VarDecl | Statement ;
-/// - ClassDecl   -> "class" IDENTIFIER "{" Function* "}" ;
+/// - ClassDecl   -> "class" IDENTIFIER ( "<" IDENTIFIER )? "{" Function* "}" ;
 /// - FunDecl     -> "fun" Function ;
 /// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - Function    -> IDENTIFIER "(" Parameters? ")" Block ;
@@ -48,7 +48,7 @@ macro_rules! matches {
 /// - Unary       -> ( "!" | "-" ) Unary | Primary ;
 /// - Arguments   -> Expression ( "," Expression )* ;
 /// - Call        -> Primary ( "(" Arguments? ")" | "." IDENTIFIER )* ;
-/// - Primary     -> NUMBER | STRING | false | true | null | "(" Expression ")" | IDENTIFIER ;
+/// - Primary     -> NUMBER | STRING | "false" | "true" | "null" | "this" | "(" Expression ")" | IDENTIFIER | "super" "." IDENTIFIER ;
 pub struct Parser {
     tokens: Vec<Token>,
     current: u32,
@@ -145,6 +145,14 @@ impl Parser {
     /// Parses a class decleration
     fn class_decleration(&mut self) -> ParseResult<Stmt> {
         let name = self.consume(Type::Identifier, "Expect class name")?.clone();
+
+        let superclass = if matches!(self, Type::Less) {
+            self.consume(Type::Identifier, "Expect superclass name")?;
+            Some(Expr::Variable(VariableData { name: self.previous().clone() }))
+        } else {
+            None
+        };
+
         self.consume(Type::LeftBrace, "Expect '{' before class body")?;
 
         let mut methods: Vec<Stmt> = vec![];
@@ -154,7 +162,7 @@ impl Parser {
 
         self.consume(Type::RightBrace, "Expect '}' after class body")?;
 
-        Ok(Stmt::Class(ClassData { name, methods }))
+        Ok(Stmt::Class(ClassData { name, superclass, methods }))
     }
 
     /// Parses a variable decleration.
@@ -622,6 +630,14 @@ impl Parser {
         if matches!(self, Type::Number, Type::String) {
             return Ok(Expr::Literal(self.previous().clone().literal
                 .expect("number or string to have a literal value")));
+        }
+
+        if matches!(self, Type::Super) { 
+            let keyword = self.previous().clone();
+            self.consume(Type::Dot, "Expect '.' after 'super'")?;
+            let method = self.consume(Type::Identifier, "Expect superclass method name")?.clone();
+
+            return Ok(Expr::Super(SuperData { keyword, method }))
         }
 
         if matches!(self, Type::This) {

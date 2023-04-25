@@ -53,6 +53,7 @@ pub struct BlockData {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ClassData {
     pub name: Token,
+    pub superclass: Option<Expr>,
     pub methods: Vec<Stmt>,
 }
 
