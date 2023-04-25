@@ -151,6 +151,7 @@ pub enum Expr {
 
 impl Expr {
     /// Accepts a visitor and returns the result of the visit.
+    /// This is used to implement the visitor pattern.
     pub fn accept<T>(&self, visitor: &mut impl ExprVisitor<T>) -> T {
         use Expr::*;
 
@@ -171,7 +172,6 @@ impl Expr {
     }
 }
 
-// TODO: Add error handling.
 /// A visitor for expressions.
 pub trait ExprVisitor<T> {
     fn visit_literal_expr(&mut self, expr: &Expr) -> T;
