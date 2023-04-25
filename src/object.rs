@@ -8,6 +8,8 @@ use crate::function::{Function, NativeFunction};
 use crate::literal::Literal;
 use crate::interpreter::Interpreter;
 
+/// Represents an object that can be stored in a variable or returned from a function.
+/// This is an enum that wraps all the possible types of values in the language.
 #[derive(Debug, Clone)]
 pub enum Object {
     Literal(Literal),
@@ -18,6 +20,7 @@ pub enum Object {
 }
 
 impl Object {
+    /// Returns the object as a number if it is a literal.
     pub fn as_number(&self) -> f32 {
         match self {
             Object::Literal(literal) => literal.as_number(),
@@ -25,6 +28,7 @@ impl Object {
         }
     }
 
+    /// Returns the object as a boolean if it is a literal.
     pub fn as_bool(&self) -> bool {
         match self {
             Object::Literal(literal) => literal.as_bool(),
@@ -93,6 +97,8 @@ impl From<Rc<RefCell<Instance>>> for Object {
     }
 }
 
+/// Partial equality is defined as equality of the underlying literal values.
+/// If the objects are not literals, they are not equal.
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -116,6 +122,12 @@ impl Display for Object {
 
 /// Represents a callable object in the language.
 pub trait Callable: Debug {
+    /// Calls the object with the given arguments and the current state of the interpreter.
+    /// The interpreter is passed in as a mutable refernece so that the object can access
+    /// the environment and call other functions. It returns the result of the call or an
+    /// error if the call failed for some reason.
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError>;
+
+    /// Returns the arity of the object.
     fn arity(&self) -> usize;
 }

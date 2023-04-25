@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// Represents a literal value in the language.
+/// This is used to represent strings, numbers, booleans, and null.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     String(String),
@@ -10,7 +11,11 @@ pub enum Literal {
 }
 
 impl Literal {
-    /// Returns the literal as a number.
+    /// Returns the literal value as a number.
+    /// - If the literal is a boolean, it will return 1.0 if true, 0.0 if false.
+    /// - If the literal is null, it will return 0.0.
+    /// - If the literal is a string, it will attempt to parse it as a number.
+    ///   If it fails, it will return 0.0.
     pub fn as_number(&self) -> f32 {
         match self {
             Literal::Number(n) => *n,
@@ -20,10 +25,15 @@ impl Literal {
         }
     }
 
-    /// Returns the literal as a boolean.
+    /// Returns the literal value as a boolean.
+    /// - If the literal is a boolean, it will return the boolean.
+    /// - If the literal is null, it will return false.
+    /// - If the literal is a string, it will return true.
+    /// - If the literal is a number, it will return true if the number is not 0.0.
     pub fn as_bool(&self) -> bool {
         match self {
             Literal::Bool(b) => *b,
+            Literal::Number(b) => *b != 0.0,
             Literal::Null => false,
             _ => true,
         }
