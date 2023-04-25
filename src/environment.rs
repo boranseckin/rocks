@@ -6,13 +6,20 @@ use crate::object::Object;
 use crate::token::Token;
 use crate::error::{RuntimeError, Error};
 
+/// Represents an environment in which variables are stored.
+/// The environment is a hash map of variable names to their values.
+/// Each environment has a reference to its enclosing environment.
+/// This is an optional reference to implement lexical scoping and closures.
 #[derive(Debug, Clone)]
 pub struct Environment {
+    /// Using an Rc and Refcell here allows us to have multiple mutable references
+    /// to the same environment.
     pub enclosing: Option<Rc<RefCell<Environment>>>,
-    pub variables: HashMap<String, Object>,
+    variables: HashMap<String, Object>,
 }
 
 impl Environment {
+    /// Creates a new environment with the given enclosing environment.
     pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
         Environment {
             enclosing,
@@ -20,10 +27,12 @@ impl Environment {
         }
     }
 
+    /// Defines a new variable in the environment with the given name and value.
     pub fn define(&mut self, name: &str, value: Object) {
         self.variables.insert(name.to_string(), value);
     }
 
+    /// Accesses the ancestor environment at the given distance.
     fn ancestor(&self, distance: usize) -> Rc<RefCell<Environment>> {
         let parent = self.enclosing.clone()
             .unwrap_or_else(|| panic!("enclosing environment to exist at depth {}", 1));
@@ -38,6 +47,11 @@ impl Environment {
         environment
     }
 
+    /// Assigns the given value to the variable with the given name.
+    /// If the variable is not define in this environment but is defined in an enclosing environment,
+    /// it will try to recursively assign the value to the variable in the enclosing environment.
+    /// If the variable is not defined in this environment or any enclosing environment, it will
+    /// throw a runtime error.
     pub fn assign(&mut self, name: &Token, value: Object) {
         if self.variables.contains_key(&name.lexeme) {
             self.variables.insert(name.lexeme.clone(), value);
@@ -55,6 +69,8 @@ impl Environment {
         }.throw();
     }
 
+    /// Works like [`Environment::assign`] but assigns the value to the variable in the ancestor
+    /// environment at the given distance.
     pub fn assign_at(&mut self, distance: usize, name: &Token, value: Object) {
         if distance > 0 {
             self.ancestor(distance).borrow_mut().variables.insert(name.lexeme.clone(), value);
@@ -63,6 +79,11 @@ impl Environment {
         }
     }
 
+    /// Returns the value of the variable with the given name.
+    /// If the variable is not defined in this environment but is defined in an enclosing environment,
+    /// it will try to recursively get the value of the variable in the enclosing environment.
+    /// If the variable is not defined in this environment or any enclosing environment, it will
+    /// throw a runtime error.
     pub fn get(&self, name: &Token) -> Result<Object, RuntimeError> {
         if let Some(variable) = self.variables.get(&name.lexeme) {
             return Ok(variable.clone());
@@ -78,6 +99,8 @@ impl Environment {
         })
     }
 
+    /// Works like [`Environment::get`] but gets the value of the variable in the ancestor
+    /// environment at the given distance.
     pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, RuntimeError> {
         if distance > 0 {
             match self.ancestor(distance).borrow().variables.get(&name.lexeme) {
