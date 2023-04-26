@@ -101,7 +101,6 @@
 //! interpreter to implement lexical scoping. The interpreter also manages the call stack.
 
 use std::{fs, process};
-use std::io::{self, Write};
 
 pub mod error;
 pub mod token;
@@ -146,16 +145,27 @@ impl rocks {
     }
 
     pub fn run_prompt(&mut self) {
+        let mut rl = rustyline::DefaultEditor::new().unwrap();
+
+        let history_path = home::home_dir().unwrap().join(".rocks.history");
+        rl.load_history(&history_path).ok();
+
         loop {
-            let mut input = String::new();
-            io::stdout().write_all(b"> ").unwrap();
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut input).expect("acceptable expression");
-
-            self.run(input);
-
-            error::reset_error();
+            let readline = rl.readline("> ");
+            match readline {
+                Ok(mut line) => {
+                    rl.add_history_entry(line.as_str()).unwrap();
+                    line.push('\n');
+                    self.run(line);
+                    error::reset_error();
+                },
+                Err(_) => {
+                    break;
+                }
+            }
         }
+
+        rl.save_history(&history_path).ok();
     }
 
     fn run(&mut self, source: String) {
