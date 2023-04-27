@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
 use crate::object::{Object, Callable};
-use crate::error::RuntimeError;
+use crate::error::{RuntimeError, ReturnType};
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::literal::Literal;
@@ -80,7 +80,12 @@ impl Callable for Function {
                 if self.is_initializer {
                     return self.closure.borrow().get_at(0, &Token::from("this"));
                 }
-                Ok(err.value)
+
+                if let ReturnType::Return(err) = err {
+                    return Ok(err.value);
+                } else {
+                    unreachable!();
+                }
             },
         }
     }

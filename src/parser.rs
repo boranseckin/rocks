@@ -34,12 +34,13 @@ macro_rules! matches {
 /// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
 /// - Function    -> IDENTIFIER "(" Parameters? ")" Block ;
 /// - Parameters  -> IDENTIFIER ( "," IDENTIFIER )* ;
-/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block ;
+/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | BreakStmt | WhileStmt | Block ;
 /// - ExprStmt    -> Expression ";" ;
 /// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
 /// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
 /// - PrintStmt   -> "print" Expression ";" ;
 /// - ReturnStmt  -> "return" Expression? ";" ;
+/// - BreakStmt   -> "break" ";" ;
 /// - WhileStmt   -> "while" "(" Expression ")" Statement ;
 /// - Expression  -> Assignment ;
 /// - Assignment  -> ( Call "." )? IDENTIFIER "=" Assignment | LogicOr ;
@@ -192,7 +193,13 @@ impl Parser {
         self.consume(Type::LeftParen, "Expect '(' after while.")?;
         let condition = self.expression()?;
         self.consume(Type::RightParen, "Expect ')' after condition.")?;
-        let body = self.statement()?;
+
+        let body = match self.statement() {
+            Ok(stmt) => stmt,
+            Err(error) => {
+                return Err(error);
+            }
+        };
 
         Ok(Stmt::While(WhileData {
             condition,
@@ -221,6 +228,10 @@ impl Parser {
 
         if matches!(self, Type::Return) {
             return self.return_statement();
+        }
+
+        if matches!(self, Type::Break) {
+            return self.break_statement();
         }
 
         if matches!(self, Type::While) {
@@ -259,7 +270,12 @@ impl Parser {
         };
         self.consume(Type::RightParen, "Expect ')' after loop clauses")?;
 
-        let mut body = self.statement()?;
+        let mut body = match self.statement() {
+            Ok(stmt) => stmt,
+            Err(error) => {
+                return Err(error);
+            }
+        };
 
         // Execute the increment after the body.
         if let Some(increment) = increment {
@@ -331,6 +347,15 @@ impl Parser {
 
         self.consume(Type::Semicolon, "Expect ';' after return value")?;
         Ok(Stmt::Return(ReturnData { keyword, value }))
+    }
+
+    /// Parses a break statement.
+    fn break_statement(&mut self) -> ParseResult<Stmt> {
+        let keyword = self.previous().clone();
+
+        self.consume(Type::Semicolon, "Expect ';' after break")?;
+
+        Ok(Stmt::Break(BreakData { keyword }))
     }
 
     /// Parses an expression statement.

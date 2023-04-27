@@ -17,7 +17,12 @@ enum FunctionType {
 enum ClassType {
     None,
     Class,
-    Subclass
+    Subclass,
+}
+
+enum LoopType {
+    None,
+    While,
 }
 
 pub struct Resolver<'a> {
@@ -25,6 +30,7 @@ pub struct Resolver<'a> {
     scopes: Vec<HashMap<String, bool>>,
     current_function: FunctionType,
     current_class: ClassType,
+    current_loop: LoopType,
 }
 
 impl<'a> Resolver<'a> {
@@ -34,6 +40,7 @@ impl<'a> Resolver<'a> {
             scopes: vec![],
             current_function: FunctionType::None,
             current_class: ClassType::None,
+            current_loop: LoopType::None,
         }
     }
 
@@ -298,11 +305,26 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
         }
     }
 
+    fn visit_break_stmt(&mut self, stmt: &Stmt) {
+        let Stmt::Break(break_stmt) = stmt else { unreachable!() };
+
+        if let LoopType::None = self.current_loop {
+            ResolveError {
+                token: break_stmt.keyword.clone(),
+                message: "Cannot break outside of a loop".to_string(),
+            }.throw();
+        }
+    }
+
     fn visit_while_stmt(&mut self, stmt: &Stmt) {
         let Stmt::While(while_stmt) = stmt else { unreachable!() };
 
+        let enclosing_loop = mem::replace(&mut self.current_loop, LoopType::While);
+
         self.resolve_expr(&while_stmt.condition);
         self.resolve_stmt(&while_stmt.body);
+
+        self.current_loop = enclosing_loop;
     }
 
     fn visit_class_stmt(&mut self, stmt: &Stmt) {

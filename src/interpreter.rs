@@ -4,7 +4,7 @@ use std::cell::RefCell;
 
 use crate::class::Class;
 use crate::environment::Environment;
-use crate::error::{self, Error, RuntimeError, ReturnError};
+use crate::error::{self, Error, ReturnType, RuntimeError, ReturnError, BreakError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::function::{NativeFunction, Function};
 use crate::object::{Object, Callable};
@@ -40,7 +40,7 @@ impl Interpreter {
         }
     }
  
-    fn execute(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         stmt.accept(self)
     }
 
@@ -66,7 +66,7 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         environment: Rc<RefCell<Environment>>
-    ) -> Result<(), ReturnError> {
+    ) -> Result<(), ReturnType> {
         let previous = self.environment.clone();
         self.environment = environment;
 
@@ -313,15 +313,15 @@ impl ExprVisitor<Object> for Interpreter {
     }
 }
 
-impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
-    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
+    fn visit_expression_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Expression(data) = stmt else { unreachable!() };
         self.evaluate(&data.expr);
 
         Ok(())
     }
 
-    fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_function_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Function(_) = stmt else { unreachable!() };
 
         let function = Function::new(stmt.to_owned(), Rc::clone(&self.environment), false);
@@ -331,7 +331,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         Ok(())
     }
 
-    fn visit_if_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_if_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::If(data) = stmt else { unreachable!() };
         if self.evaluate(&data.condition).as_bool() {
             self.execute(&data.then_branch)
@@ -342,7 +342,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         }
     }
 
-    fn visit_print_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_print_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Print(data) = stmt else { unreachable!() };
         let value = self.evaluate(&data.expr);
 
@@ -356,7 +356,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         Ok(())
     }
 
-    fn visit_return_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_return_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Return(data) = stmt else { unreachable!() };
 
         let value = if let Some(expr) = &data.value {
@@ -365,10 +365,16 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
             Object::from(Literal::Null)
         };
 
-        Err(ReturnError { value })
+        Err(ReturnType::Return(ReturnError { value }))
     }
 
-    fn visit_var_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_break_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
+        let Stmt::Break(_) = stmt else { unreachable!() };
+
+        Err(ReturnType::Break(BreakError {}))
+    }
+
+    fn visit_var_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Var(data) = stmt else { unreachable!() };
         let value = match &data.initializer {
             Some(value) => self.evaluate(value),
@@ -380,16 +386,18 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         Ok(())
     }
 
-    fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::While(data) = stmt else { unreachable!() };
         while self.evaluate(&data.condition).as_bool() {
-            self.execute(&data.body)?;
+            if let Err(ReturnType::Break(_)) = self.execute(&data.body) {
+                break;
+            }
         }
 
         Ok(())
     }
 
-    fn visit_block_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_block_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Block(data) = stmt else { unreachable!() };
         self.execute_block(
             &data.statements,
@@ -397,7 +405,7 @@ impl StmtVisitor<Result<(), ReturnError>> for Interpreter {
         )
     }
 
-    fn visit_class_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnError> {
+    fn visit_class_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Class(data) = stmt else { unreachable!() };
 
         let superclass = data.superclass.as_ref().map(|superclass| self.evaluate(superclass));

@@ -129,10 +129,22 @@ impl Error for RuntimeError {
     }
 }
 
-/// Represents a special error that is caught by the interpreter.
 /// This error is thrown when a return statement is executed. Since errors are propagated up the
 /// execution stack, the interpreter can catch it and return the value of the return statement.
 #[derive(Debug)]
 pub struct ReturnError {
     pub value: Object,
+}
+
+/// This error is thrown when a break statement is executed. Since errors are propagated up the
+/// execution stack, the interpreter can catch it and break out of the current loop.
+#[derive(Debug)]
+pub struct BreakError;
+
+/// Represents a special error that is caught by the interpreter.
+#[derive(Debug)]
+pub enum ReturnType {
+    Error(RuntimeError),
+    Return(ReturnError),
+    Break(BreakError),
 }
