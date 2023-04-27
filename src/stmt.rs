@@ -47,7 +47,9 @@ pub struct ReturnData {
 
 /// Represents a [`break`](Stmt::Break) statement's data in the language.
 #[derive(Debug, PartialEq, Clone)]
-pub struct BreakData;
+pub struct BreakData {
+    pub keyword: Token,
+}
 
 /// Represents a [`var`](Stmt::Var) statement's data in the language.
 #[derive(Debug, PartialEq, Clone)]

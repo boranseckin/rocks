@@ -60,14 +60,12 @@ pub struct Parser {
     tokens: Vec<Token>,
     /// The current token index.
     current: u32,
-    /// The current loop depth.
-    loop_depth: u32,
 }
 
 impl Parser {
     /// Creates a new parser with the given tokens.
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0, loop_depth: 0 }
+        Parser { tokens, current: 0 }
     }
 
     /// Parses the tokens and returns the resulting expression.
@@ -196,17 +194,12 @@ impl Parser {
         let condition = self.expression()?;
         self.consume(Type::RightParen, "Expect ')' after condition.")?;
 
-        self.loop_depth += 1;
-
         let body = match self.statement() {
             Ok(stmt) => stmt,
             Err(error) => {
-                self.loop_depth -= 1;
                 return Err(error);
             }
         };
-
-        self.loop_depth -= 1;
 
         Ok(Stmt::While(WhileData {
             condition,
@@ -277,13 +270,9 @@ impl Parser {
         };
         self.consume(Type::RightParen, "Expect ')' after loop clauses")?;
 
-
-        self.loop_depth += 1;
-
         let mut body = match self.statement() {
             Ok(stmt) => stmt,
             Err(error) => {
-                self.loop_depth -= 1;
                 return Err(error);
             }
         };
@@ -316,8 +305,6 @@ impl Parser {
                 ],
             });
         }
-
-        self.loop_depth -= 1;
 
         Ok(body)
     }
@@ -364,16 +351,11 @@ impl Parser {
 
     /// Parses a break statement.
     fn break_statement(&mut self) -> ParseResult<Stmt> {
-        if self.loop_depth == 0 {
-            return Err(ParseError {
-                token: self.peek().clone(),
-                message: "Cannot break outside of a loop".to_string(),
-            });
-        }
+        let keyword = self.previous().clone();
 
         self.consume(Type::Semicolon, "Expect ';' after break")?;
 
-        Ok(Stmt::Break(BreakData {}))
+        Ok(Stmt::Break(BreakData { keyword }))
     }
 
     /// Parses an expression statement.
