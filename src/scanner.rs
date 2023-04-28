@@ -296,3 +296,96 @@ impl<'a> Scanner<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn create_scanner() {
+        let mut scanner = Scanner::new("test".to_string());
+        let tokens = scanner.scan_tokens();
+        assert_eq!(tokens.len(), 2);
+    }
+
+    #[test]
+    fn create_scanner_with_empty_string() {
+        let mut scanner = Scanner::new("".to_string());
+        let tokens = scanner.scan_tokens();
+        assert_eq!(tokens.len(), 1);
+    }
+
+    #[test]
+    fn create_scanner_with_whitespace() {
+        let mut scanner = Scanner::new(" ".to_string());
+        let tokens = scanner.scan_tokens();
+        assert_eq!(tokens.len(), 1);
+    }
+
+    #[test]
+    fn create_scanner_with_comment() {
+        let mut scanner = Scanner::new("// comment".to_string());
+        let tokens = scanner.scan_tokens();
+        assert_eq!(tokens.len(), 1);
+    }
+
+    #[test]
+    fn advance() {
+        let mut scanner = Scanner::new("var".to_string());
+        assert_eq!(scanner.advance(), 'v');
+        assert_eq!(scanner.advance(), 'a');
+        assert_eq!(scanner.advance(), 'r');
+        assert_eq!(scanner.advance(), '\n');
+    }
+
+    #[test]
+    #[should_panic(expected = "tried to advance past end of the file.")]
+    fn advance_past_end() {
+        let mut scanner = Scanner::new("".to_string());
+        scanner.advance();
+        scanner.advance();
+    }
+
+    #[test]
+    fn peek() {
+        let mut scanner = Scanner::new("var".to_string());
+        assert_eq!(scanner.peek(), 'v');
+        assert_eq!(scanner.peek(), 'v');
+        scanner.advance();
+        assert_eq!(scanner.peek(), 'a');
+        assert_eq!(scanner.peek(), 'a');
+    }
+
+    #[test]
+    #[should_panic(expected = "tried to peek past end of the file.")]
+    fn peek_past_end() {
+        let mut scanner = Scanner::new("".to_string());
+        scanner.advance();
+        scanner.peek();
+    }
+
+    #[test]
+    fn peek_next() {
+        let mut scanner = Scanner::new("var".to_string());
+        assert_eq!(scanner.peek_next(), 'a');
+        assert_eq!(scanner.peek_next(), 'a');
+        scanner.advance();
+        assert_eq!(scanner.peek_next(), 'r');
+        assert_eq!(scanner.peek_next(), 'r');
+    }
+
+    #[test]
+    #[should_panic(expected = "tried to peek next past end of the file.")]
+    fn peek_next_past_end() {
+        let scanner = Scanner::new("".to_string());
+        scanner.peek_next();
+    }
+
+    #[test]
+    fn match_next() {
+        let mut scanner = Scanner::new("var".to_string());
+        assert!(scanner.match_next('v'));
+        assert!(!scanner.match_next('x'));
+        assert!(scanner.match_next('a'));
+    }
+}
