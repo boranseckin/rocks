@@ -33,6 +33,18 @@ fn create_token_from_str() {
 }
 
 #[test]
+fn display_token() {
+    let token = Token::new(
+        Type::LeftParen,
+        "(".to_string(),
+        None,
+        Location::new(1, 3),
+    );
+
+    assert_eq!(format!("{}", token), "LeftParen ( None @ [1:3]");
+}
+
+#[test]
 fn same_hash_for_same_token() {
     let token = Token::from("init");
     let token_copy = Token::from("init");
