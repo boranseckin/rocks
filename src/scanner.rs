@@ -300,6 +300,7 @@ impl<'a> Scanner<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::error;
 
     #[test]
     fn create_scanner() {
@@ -387,5 +388,73 @@ mod test {
         assert!(scanner.match_next('v'));
         assert!(!scanner.match_next('x'));
         assert!(scanner.match_next('a'));
+    }
+
+    #[test]
+    fn string() {
+        let mut scanner = Scanner::new("\"test\"".to_string());
+        scanner.advance(); // Skip the first quote
+        scanner.string();
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::String);
+        assert_eq!(scanner.tokens[0].lexeme, "\"test\"");
+        assert_eq!(scanner.tokens[0].literal, Some(Literal::String("test".to_string())));
+    }
+
+    #[test]
+    fn string_without_terminator() {
+        let mut scanner = Scanner::new("\"test".to_string());
+        scanner.advance(); // Skip the first quote
+        assert!(!error::did_error());
+        scanner.string();
+        assert!(error::did_error());
+        error::reset_error();
+    }
+
+    #[test]
+    fn number() {
+        let mut scanner = Scanner::new("123".to_string());
+        scanner.number();
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Number);
+        assert_eq!(scanner.tokens[0].lexeme, "123");
+        assert_eq!(scanner.tokens[0].literal, Some(Literal::Number(123.0)));
+    }
+
+    #[test]
+    fn number_with_decimal() {
+        let mut scanner = Scanner::new("123.456".to_string());
+        scanner.number();
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Number);
+        assert_eq!(scanner.tokens[0].lexeme, "123.456");
+        assert_eq!(scanner.tokens[0].literal, Some(Literal::Number(123.456)));
+    }
+
+    #[test]
+    fn number_with_decimal_without_fractional() {
+        let mut scanner = Scanner::new("123.".to_string());
+        assert!(!error::did_error());
+        scanner.number();
+        assert!(error::did_error());
+        error::reset_error();
+    }
+
+    #[test]
+    fn identifier() {
+        let mut scanner = Scanner::new("test".to_string());
+        scanner.identifier();
+        assert_eq!(scanner.tokens.len(), 1);
+        assert_eq!(scanner.tokens[0].r#type, Type::Identifier);
+        assert_eq!(scanner.tokens[0].lexeme, "test");
+        assert_eq!(scanner.tokens[0].literal, None);
+    }
+
+    #[test]
+    fn unkown_character() {
+        let mut scanner = Scanner::new("£".to_string());
+        scanner.scan_token();
+        assert!(error::did_error());
+        error::reset_error();
     }
 }
