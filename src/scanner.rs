@@ -151,7 +151,8 @@ impl Scanner {
 
     /// Handles an identifier or a keyword.
     fn identifier(&mut self) {
-        while self.peek().is_alphanumeric() {
+        // is_alphanumeric does not include underscores.
+        while matches!(self.peek(), c if c.is_alphanumeric() || c == '_') {
             self.advance();
         }
 
