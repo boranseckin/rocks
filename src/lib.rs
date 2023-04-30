@@ -122,14 +122,14 @@ use scanner::Scanner;
 use resolver::Resolver;
 
 #[allow(non_camel_case_types)]
-pub struct rocks {
-    interpreter: interpreter::Interpreter,
+pub struct rocks<'w> {
+    interpreter: interpreter::Interpreter<'w>,
 }
 
-impl rocks {
-    pub fn new() -> Self {
+impl<'w> rocks<'w> {
+    pub fn new<W: std::io::Write + 'w>(writer: W) -> Self {
         rocks {
-            interpreter: interpreter::Interpreter::new(),
+            interpreter: interpreter::Interpreter::new(writer),
         }
     }
 
@@ -198,8 +198,8 @@ impl rocks {
     }
 }
 
-impl Default for rocks {
+impl<'w> Default for rocks<'w> {
     fn default() -> Self {
-        Self::new()
+        Self::new(std::io::stdout())
     }
 }

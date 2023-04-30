@@ -5,7 +5,7 @@ use rocks_lang::rocks;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mut rocks = rocks::new();
+    let mut rocks = rocks::default();
 
     println!("rocks v{}", env!("CARGO_PKG_VERSION"));
 

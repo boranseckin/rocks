@@ -25,16 +25,16 @@ enum LoopType {
     While,
 }
 
-pub struct Resolver<'a> {
-    interpreter: &'a mut Interpreter,
+pub struct Resolver<'a, 'w> {
+    interpreter: &'a mut Interpreter<'w>,
     scopes: Vec<HashMap<String, bool>>,
     current_function: FunctionType,
     current_class: ClassType,
     current_loop: LoopType,
 }
 
-impl<'a> Resolver<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> Self {
+impl<'a, 'w> Resolver<'a, 'w> {
+    pub fn new(interpreter: &'a mut Interpreter<'w>) -> Self {
         Resolver {
             interpreter,
             scopes: vec![HashMap::new()],
@@ -118,7 +118,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> ExprVisitor<()> for Resolver<'a> {
+impl<'a, 'w> ExprVisitor<()> for Resolver<'a, 'w> {
     fn visit_variable_expr(&mut self, expr: &Expr) {
         let Expr::Variable(variable) = expr else { unreachable!() };
 
@@ -232,7 +232,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
     }
 }
 
-impl<'a> StmtVisitor<()> for Resolver<'a> {
+impl<'a, 'w> StmtVisitor<()> for Resolver<'a, 'w> {
     fn visit_block_stmt(&mut self, stmt: &Stmt) {
         let Stmt::Block(block) = stmt else { unreachable!() };
 

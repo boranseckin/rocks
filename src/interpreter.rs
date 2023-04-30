@@ -12,15 +12,16 @@ use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Type, Token};
 use crate::literal::Literal;
 
-pub struct Interpreter {
+pub struct Interpreter<'w> {
     // Interior mutability with multiple owners
     environment: Rc<RefCell<Environment>>,
     globals: Rc<RefCell<Environment>>,
     locals: HashMap<Token, usize>,
+    writer: Box<dyn std::io::Write + 'w>,
 }
 
-impl Interpreter {
-    pub fn new() -> Self {
+impl<'w> Interpreter<'w> {
+    pub fn new<W: std::io::Write + 'w>(writer: W) -> Self {
         let globals = Rc::new(RefCell::new(Environment::default()));
 
         NativeFunction::get_globals().iter().for_each(|native| {
@@ -31,6 +32,7 @@ impl Interpreter {
             environment: Rc::clone(&globals),
             globals: Rc::clone(&globals),
             locals: HashMap::new(),
+            writer: Box::new(writer),
         }
     }
 
@@ -87,13 +89,13 @@ impl Interpreter {
     }
 }
 
-impl Default for Interpreter {
+impl<'w> Default for Interpreter<'w> {
     fn default() -> Self {
-        Self::new()
+        Self::new(std::io::stdout())
     }
 }
 
-impl ExprVisitor<Object> for Interpreter {
+impl<'w> ExprVisitor<Object> for Interpreter<'w> {
     fn visit_literal_expr(&mut self, expr: &Expr) -> Object {
         let Expr::Literal(expr) = expr else { unreachable!() };
         Object::Literal(expr.clone())
@@ -383,7 +385,7 @@ impl ExprVisitor<Object> for Interpreter {
     }
 }
 
-impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
+impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Expression(data) = stmt else { unreachable!() };
         self.evaluate(&data.expr);
@@ -421,7 +423,7 @@ impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
             return Ok(());
         }
 
-        println!("{value}");
+        writeln!(self.writer, "{value}").expect("writer to not fail on write");
 
         Ok(())
     }
