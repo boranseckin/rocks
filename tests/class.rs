@@ -10,7 +10,7 @@ mod class {
 
     tests! {
         inherit_self in class is ERR
-        "[line 0:12] Error at 'Foo': A class cannot inherit from itself"
+        "[line 1:13] Error at 'Foo': A class cannot inherit from itself"
     }
 
     tests! {
@@ -27,7 +27,7 @@ mod class {
 
     tests! {
         local_inherit_self in class is ERR
-        "[line 1:14] Error at 'Foo': A class cannot inherit from itself"
+        "[line 2:15] Error at 'Foo': A class cannot inherit from itself"
     }
 
     tests! {
