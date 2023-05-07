@@ -125,28 +125,95 @@ impl ExprVisitor<Object> for Interpreter {
         let left = self.evaluate(&expr.left);
         let right = self.evaluate(&expr.right);
 
-        match expr.operator.r#type {
-            Type::Greater       => Object::from(left.as_number() > right.as_number()),
-            Type::GreaterEqual  => Object::from(left.as_number() >= right.as_number()),
-            Type::Less          => Object::from(left.as_number() < right.as_number()),
-            Type::LessEqual     => Object::from(left.as_number() <= right.as_number()),
-            Type::EqualEqual    => Object::from(left.as_number() == right.as_number()),
-            Type::BangEqual     => Object::from(left.as_number() != right.as_number()),
-            Type::Slash         => Object::from(left.as_number() / right.as_number()),
-            Type::Star          => Object::from(left.as_number() * right.as_number()),
-            Type::Minus         => Object::from(left.as_number() - right.as_number()),
-            Type::Plus          => match (left, right) {
-                (Object::Literal(Literal::Number(l)), Object::Literal(Literal::Number(r))) => Object::from(l + r),
-                (Object::Literal(Literal::String(l)), Object::Literal(Literal::String(r))) => Object::from(l + &r),
+        if let (Object::Literal(left), Object::Literal(right)) = (&left, &right) {
+            match (left, right) {
+                (Literal::Number(l), Literal::Number(r)) => {
+                    match expr.operator.r#type {
+                        Type::Plus         => Object::Literal(Literal::Number(l + r)),
+                        Type::Minus        => Object::Literal(Literal::Number(l - r)),
+                        Type::Slash        => Object::Literal(Literal::Number(l / r)),
+                        Type::Star         => Object::Literal(Literal::Number(l * r)),
+                        Type::EqualEqual   => Object::Literal(Literal::Bool(l == r)),
+                        Type::BangEqual    => Object::Literal(Literal::Bool(l != r)),
+                        Type::Greater      => Object::Literal(Literal::Bool(l > r)),
+                        Type::Less         => Object::Literal(Literal::Bool(l < r)),
+                        Type::GreaterEqual => Object::Literal(Literal::Bool(l >= r)),
+                        Type::LessEqual    => Object::Literal(Literal::Bool(l <= r)),
+                        _ => {
+                            RuntimeError {
+                                token: expr.operator.clone(),
+                                message: format!(
+                                    "Binary operation '{}' is not supported for number type",
+                                    expr.operator.lexeme
+                                ),
+                            }.throw();
+                            return Object::Literal(Literal::Null);
+                        },
+                    }
+                },
+                (Literal::String(l), Literal::String(r)) => {
+                    match expr.operator.r#type {
+                        Type::EqualEqual => Object::Literal(Literal::Bool(l == r)),
+                        Type::BangEqual  => Object::Literal(Literal::Bool(l != r)),
+                        Type::Plus       => Object::Literal(Literal::String(l.clone() + r)),
+                        _ => {
+                            RuntimeError {
+                                token: expr.operator.clone(),
+                                message: format!(
+                                    "Binary operation '{}' is not supported for string type",
+                                    expr.operator.lexeme
+                                ),
+                            }.throw();
+                            return Object::Literal(Literal::Null);
+                        },
+                    }
+                },
+                (Literal::Bool(l), Literal::Bool(r)) => {
+                    match expr.operator.r#type {
+                        Type::EqualEqual => Object::Literal(Literal::Bool(l == r)),
+                        Type::BangEqual  => Object::Literal(Literal::Bool(l != r)),
+                        _ => {
+                            RuntimeError {
+                                token: expr.operator.clone(),
+                                message: format!(
+                                    "Binary operation '{}' is not supported for boolean type",
+                                    expr.operator.lexeme
+                                ),
+                            }.throw();
+                            return Object::Literal(Literal::Null);
+                        },
+                    }
+                },
+                (Literal::Null, Literal::Null) => {
+                    match expr.operator.r#type {
+                        Type::EqualEqual => Object::Literal(Literal::Bool(true)),
+                        Type::BangEqual  => Object::Literal(Literal::Bool(false)),
+                        _ => {
+                            RuntimeError {
+                                token: expr.operator.clone(),
+                                message: format!(
+                                    "Binary operation '{}' is not supported for null type",
+                                    expr.operator.lexeme
+                                ),
+                            }.throw();
+                            return Object::Literal(Literal::Null);
+                        },
+                    }
+                },
                 _ => {
                     RuntimeError {
                         token: expr.operator.clone(),
-                        message: "Tried to add two unsupported types".to_string(),
+                        message: "Binary operation with mismatched literal types is not supported".to_string(),
                     }.throw();
-                    Object::from(Literal::Null)
+                    return Object::Literal(Literal::Null);
                 }
-            },
-            _ => unreachable!(),
+            }
+        } else {
+            RuntimeError {
+                token: expr.operator.clone(),
+                message: "Binary operation with non-literal objects is not supported".to_string(),
+            }.throw();
+            return Object::Literal(Literal::Null);
         }
     }
 
