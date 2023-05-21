@@ -117,7 +117,7 @@ impl<'a> Scanner<'a> {
     /// Handles a string literal.
     fn string(&mut self) {
         self.advance(); // Move past the starting double quotes.
-        let start = (self.line, self.start);
+        let start = (self.line, self.start - self.column_offset);
 
         let mut value = Vec::new();
         while !self.is_at_end() {
@@ -163,7 +163,7 @@ impl<'a> Scanner<'a> {
                 }
             } else {
                 ScanError {
-                    location: Location::new(self.line, self.start),
+                    location: Location::new(self.line, self.start - self.column_offset),
                     message: String::from("Unterminated number"),
                 }.throw();
                 return;
