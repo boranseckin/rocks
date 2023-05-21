@@ -21,7 +21,7 @@ pub struct Interpreter<'w> {
 }
 
 impl<'w> Interpreter<'w> {
-    pub fn new<W: std::io::Write + 'w>(writer: W) -> Self {
+    pub fn new<W: std::io::Write>(writer: &'w mut W) -> Self {
         let globals = Rc::new(RefCell::new(Environment::default()));
 
         NativeFunction::get_globals().iter().for_each(|native| {
@@ -91,7 +91,7 @@ impl<'w> Interpreter<'w> {
 
 impl<'w> Default for Interpreter<'w> {
     fn default() -> Self {
-        Self::new(std::io::stdout())
+        Self::new(Box::leak(Box::new(std::io::stdout())))
     }
 }
 

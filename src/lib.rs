@@ -127,7 +127,7 @@ pub struct rocks<'w> {
 }
 
 impl<'w> rocks<'w> {
-    pub fn new<W: std::io::Write + 'w>(writer: W) -> Self {
+    pub fn new<W: std::io::Write>(writer: &'w mut W) -> Self {
         rocks {
             interpreter: interpreter::Interpreter::new(writer),
         }
@@ -200,6 +200,6 @@ impl<'w> rocks<'w> {
 
 impl<'w> Default for rocks<'w> {
     fn default() -> Self {
-        Self::new(std::io::stdout())
+        Self::new(Box::leak(Box::new(std::io::stdout())))
     }
 }
