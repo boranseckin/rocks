@@ -461,8 +461,10 @@ impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::While(data) = stmt else { unreachable!() };
         while self.evaluate(&data.condition).as_bool() {
-            if let Err(ReturnType::Break(_)) = self.execute(&data.body) {
-                break;
+            match self.execute(&data.body) {
+                Err(ReturnType::Break(_)) => break,
+                Err(err)=> return Err(err),
+                _ => {},
             }
         }
 
