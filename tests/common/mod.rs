@@ -4,7 +4,8 @@ macro_rules! tests {
         #[test]
         fn $file() {
             use rocks_lang::rocks;
-
+            // concat output with new lines
+            // add empty string to end to add new line to end of output
             let expected = vec![$($expected),+, ""].join("\n");
 
             let mut output = Vec::new();
@@ -12,6 +13,7 @@ macro_rules! tests {
 
             rocks.run_file(format!("examples/{}/{}.rocks", stringify!($scope), stringify!($file)));
 
+            // drop rocks here to avoid compiler's drop check error before accessing output
             drop(rocks);
             assert_eq!(expected, std::str::from_utf8(&output).unwrap());
         }
