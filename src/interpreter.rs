@@ -216,7 +216,7 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
         } else {
             RuntimeError {
                 token: expr.operator.clone(),
-                message: "Binary operation with non-literal objects is not supported".to_string(),
+                message: "Binary operation with non-literal types is not supported".to_string(),
             }.throw();
             return Object::Literal(Literal::Null);
         }
