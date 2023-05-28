@@ -12,30 +12,30 @@ pub enum Literal {
 
 impl Literal {
     /// Returns the literal value as a number.
+    /// - If the literal is a number, it will return the number.
     /// - If the literal is a boolean, it will return 1.0 if true, 0.0 if false.
     /// - If the literal is null, it will return 0.0.
-    /// - If the literal is a string, it will attempt to parse it as a number.
-    ///   If it fails, it will return 0.0.
+    /// - If the literal is a string, it will attempt to parse it as a number or return 0.0.
     pub fn as_number(&self) -> f32 {
         match self {
             Literal::Number(n) => *n,
-            Literal::Null => 0.0,
             Literal::Bool(b) => if *b { 1.0 } else { 0.0 },
+            Literal::Null => 0.0,
             Literal::String(s) => s.parse::<f32>().unwrap_or(0.0),
         }
     }
 
     /// Returns the literal value as a boolean.
     /// - If the literal is a boolean, it will return the boolean.
-    /// - If the literal is null, it will return false.
-    /// - If the literal is a string, it will return true.
     /// - If the literal is a number, it will return true if the number is not 0.0.
+    /// - If the literal is null, it will return false.
+    /// - If the literal is a string, it will return true if the string is not empty.
     pub fn as_bool(&self) -> bool {
         match self {
             Literal::Bool(b) => *b,
             Literal::Number(b) => *b != 0.0,
             Literal::Null => false,
-            _ => true,
+            Literal::String(b) => !b.is_empty(),
         }
     }
 }
