@@ -29,11 +29,11 @@ example, the string `1 + 2` would be converted into the following tokens:
 ```
 [Number(1), Plus, Number(2)]
 ```
-The scanner is implemented in the [`scanner`](scanner) module as an iterator over the characters
+The scanner is implemented in the [`scanner`](src/scanner.rs) module as an iterator over the characters
 in the source code. It is a simple state machine that returns the next token in the source code
 when called.
 
-The scanner reports syntax errors in the source code as a [`ScanError`](error::ScanError).
+The scanner reports syntax errors in the source code as a [`ScanError`](src/error.rs).
 These errors are trivial problems like an unterminated string literal or an unexpected character.
 Scan errors are reported as soon as they are encountered. This means that the scanner will
 continue scanning the source code even if it has already encountered a syntax error. This is
@@ -41,11 +41,11 @@ useful because it allows the user to fix multiple syntax errors at once.
 
 ### Parsing
 The second step in the interpreter is parsing. Parsing is the process of converting a list of
-tokens into an abstract syntax tree (AST). The parser is implemented in the [`parser`](parser)
+tokens into an abstract syntax tree (AST). The parser is implemented in the [`parser`](src/parser.rs)
 module as a recursive descent parser. The parser transforms the list of tokens into expressions
-and statements. [`Expressions`](expr::Expr) are pieces of code that produce a value, specifically an
-[`Object`](object::Object). Objects are an umbrella term for all types of values in Rocks
-including literals, functions, classes and instances. [`Statements`](stmt::Stmt) are pieces of code
+and statements. [`Expressions`](src/expr.rs) are pieces of code that produce a value, specifically an
+[`Object`](src/object.rs). Objects are an umbrella term for all types of values in Rocks
+including literals, functions, classes and instances. [`Statements`](src/stmt.rs) are pieces of code
 that do not produce a value but instead perform some action. These actions modify the state of the
 program and thus, are called side-effects. For example, a variable decleration or an if clause
 would be classified as statements.
@@ -60,7 +60,7 @@ PrintStatement {
     }
 }
 ```
-The parser reports syntax errors in the source code as a [`ParseError`](error::ParseError).
+The parser reports syntax errors in the source code as a [`ParseError`](src/error.rs).
 Unlike the scanner, the parser catches errors that span multiple tokens. For example, the
 following expression is invalid because it is missing the right-hand operand:
 ```
@@ -74,9 +74,9 @@ because it allows the user to fix multiple syntax errors at once.
 The third step in the interpreter is resolving. Resolving is the process of statically analyzing
 the AST to determine the scope of each variable. While this requires a pre-pass of the AST, it
 is necessary to construct robust lexiacl scoping. The resolver is implemented in the
-[`resolver`](resolver) module as a tree-walk interpreter. The resolver is run after the parser
+[`resolver`](src/resolver.rs) module as a tree-walk interpreter. The resolver is run after the parser
 because it requires the AST to be fully constructed. The resolver reports errors as a
-[`ResolveError`](error::ResolveError). These errors are syntactically valid but semantically invalid.
+[`ResolveError`](src/error.rs). These errors are syntactically valid but semantically invalid.
 and therefore, cannot be caught by the scanner or the parser. For example, the following expression
 is valid a valid Rocks syntax but it is semantically invalid because the variable `a` is defined
 twice in the same scope:
@@ -89,9 +89,9 @@ twice in the same scope:
 
 ### Interpreting
 The final step in the interpreter is _interpreting_. Interpreting is the process of evaluating the
-AST. The interpreter is implemented in the [`interpreter`](interpreter) module as a tree-walk
+AST. The interpreter is implemented in the [`interpreter`](src/interpreter.rs) module as a tree-walk
 interpreter. Thanks to all the previous steps, the interpreter is able to evaluate the AST and produce
-a result. The interpreter reports errors as a [`RuntimeError`](error::RuntimeError). While the
+a result. The interpreter reports errors as a [`RuntimeError`](src/error.rs). While the
 scanner, the parser and the resolver try to catch as many errors as possible before running the
 code, most errors can only be caught at runtime. For example, the following expression is valid
 Rocks syntax but it is semantically invalid because it tries to add a string and a number:
@@ -100,7 +100,7 @@ var a = "123";
 var b = a + 123;
 ```
 The interpreter is also responsible for managing the environment. The environment is a mapping of
-variable names to their values. The environment is implemented in the [`environment`](environment)
+variable names to their values. The environment is implemented in the [`environment`](src/environment.rs)
 module as a stack of hash maps. Each hash map represents a scope in the program. This allows the
 interpreter to implement lexical scoping. The interpreter also manages the call stack.
 
