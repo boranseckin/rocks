@@ -1,12 +1,23 @@
 #[macro_export]
 macro_rules! tests {
-    ($file:ident in $scope:ident is OK $($expected:expr)+) => {
+    ($file:ident in $scope:ident is OK $($expected:expr)*) => {
         #[test]
         fn $file() {
             use rocks_lang::rocks;
-            // concat output with new lines
-            // add empty string to end to add new line to end of output
-            let expected = vec![$($expected),+, ""].join("\n");
+
+            let mut expected = vec![$($expected),*];
+
+            // if exists, concat expected lines with new lines
+            let expected = match expected.len() {
+                0 => {
+                    "".to_string()
+                },
+                _ => {
+                    // add empty string to end to add new line to end of output
+                    expected.push("");
+                    expected.join("\n")
+                }
+            };
 
             let mut output = Vec::new();
             let mut rocks = rocks::new(&mut output);
