@@ -37,7 +37,7 @@ impl<'a> Resolver<'a> {
     pub fn new(interpreter: &'a mut Interpreter) -> Self {
         Resolver {
             interpreter,
-            scopes: vec![],
+            scopes: vec![HashMap::new()],
             current_function: FunctionType::None,
             current_class: ClassType::None,
             current_loop: LoopType::None,
