@@ -9,9 +9,7 @@ macro_rules! tests {
 
             // if exists, concat expected lines with new lines
             let expected = match expected.len() {
-                0 => {
-                    "".to_string()
-                },
+                0 => "".to_string(),
                 _ => {
                     // add empty string to end to add new line to end of output
                     expected.push("");
