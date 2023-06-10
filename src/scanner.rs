@@ -17,7 +17,7 @@ pub struct Scanner<'a> {
 
 impl<'a> Scanner<'a> {
     /// Creates a new scanner.
-    pub fn new(source: &'a mut str) -> Scanner<'a> {
+    pub fn new(source: &'a str) -> Scanner<'a> {
         Scanner {
             source: source.chars().peekmore(),
             tokens: vec!(),

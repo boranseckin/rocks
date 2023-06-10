@@ -169,7 +169,11 @@ impl rocks {
     }
 
     fn run(&mut self, mut source: String) {
-        let mut scanner = Scanner::new(&mut source);
+        if !source.ends_with('\n') {
+            source.push('\n');
+        }
+
+        let mut scanner = Scanner::new(&source);
         let tokens = scanner.scan_tokens();
 
         if error::did_error() {
