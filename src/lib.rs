@@ -168,8 +168,8 @@ impl rocks {
         rl.save_history(&history_path).ok();
     }
 
-    fn run(&mut self, source: String) {
-        let mut scanner = Scanner::new(source);
+    fn run(&mut self, mut source: String) {
+        let mut scanner = Scanner::new(&mut source);
         let tokens = scanner.scan_tokens();
 
         if error::did_error() {

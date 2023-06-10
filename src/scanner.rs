@@ -1,11 +1,13 @@
-use substring::Substring;
+use std::str::Chars;
+
+use peekmore::{PeekMore, PeekMoreIterator};
 
 use crate::token::{Token, Type, Location};
 use crate::literal::Literal;
 use crate::error::{Error, ScanError};
 
-pub struct Scanner {
-    source: String,
+pub struct Scanner<'a> {
+    source: PeekMoreIterator<Chars<'a>>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -13,10 +15,17 @@ pub struct Scanner {
     column_offset: usize,
 }
 
-impl Scanner {
+impl<'a> Scanner<'a> {
     /// Creates a new scanner.
-    pub fn new(source: String) -> Scanner {
-        Scanner { source, tokens: vec!(), start: 0, current: 0, line: 0, column_offset: 0 }
+    pub fn new(source: &'a mut str) -> Scanner<'a> {
+        Scanner {
+            source: source.chars().peekmore(),
+            tokens: vec!(),
+            start: 0,
+            current: 0,
+            line: 0,
+            column_offset: 0
+        }
     }
 
     /// Scans the source code and returns a vector of tokens.
@@ -40,26 +49,26 @@ impl Scanner {
 
     /// Returns the next character.
     fn advance(&mut self) -> char {
-        let temp = self.current;
-        self.current += 1;
-
-        match self.source.chars().nth(temp) {
-            Some(char) => char,
+        match self.source.next() {
+            Some(char) => {
+                self.current += 1;
+                char
+            },
             None => panic!("tried to advance past end of the file."),
         }
     }
 
     /// Returns the next character without consuming it.
-    fn peek(&self) -> char {
-        match self.source.chars().nth(self.current) {
+    fn peek(&mut self) -> &char {
+        match self.source.peek() {
             Some(char) => char,
             None => panic!("tried to peek past end of the file."),
         }
     }
 
     /// Returns the next next character without consuming it.
-    fn peek_next(&self) -> char {
-        match self.source.chars().nth(self.current + 1) {
+    fn peek_next(&mut self) -> &char {
+        match self.source.peek_next() {
             Some(char) => char,
             None => panic!("tried to peek next past end of the file."),
         }
@@ -67,45 +76,55 @@ impl Scanner {
 
     /// Returns if the next character is the expected character.
     fn match_next(&mut self, expected: char) -> bool {
-        match self.source.chars().nth(self.current) {
-            Some(char) if char == expected => {
-                self.current += 1;
-                true
-            },
+        match self.source.peek_next() {
+            Some(char) if *char == expected => true,
             Some(_) => false,
             None => false,
         }
     }
 
     /// Adds a new token to the list of tokens.
-    fn add_token(&mut self, r#type: Type, literal: Option<Literal>) {
-        let text = self.source.substring(self.start, self.current);
+    fn add_token(&mut self, r#type: Type, lexeme: String, literal: Option<Literal>) {
         self.tokens.push(
             Token::new(
                 r#type,
-                String::from(text),
+                lexeme,
                 literal,
                 Location::new(self.line, self.start - self.column_offset)
             )
         );
     }
 
+    /// Adds a new single char token to the list of tokens.
+    fn add_single_char_token(&mut self, r#type: Type) {
+        let c = self.advance();
+        self.add_token(r#type, c.to_string(), None);
+    }
+
+    /// Adds a new double char token to the list of tokens.
+    fn add_double_char_token(&mut self, r#type: Type) {
+        let first = self.advance();
+        let second = self.advance();
+
+        self.add_token(r#type, format!("{first}{second}"), None);
+    }
+
     /// Returns if the scanner has reached the end of the file.
-    fn is_at_end(&self) -> bool {
-       self.current >= self.source.len()
+    fn is_at_end(&mut self) -> bool {
+        self.source.peek().is_none()
     }
 
     /// Handles a string literal.
     fn string(&mut self) {
+        self.advance(); // Move past the starting double quotes.
         let start = (self.line, self.start);
 
-        while !self.is_at_end() && self.peek() != '"' {
-            if self.peek() == '\n' {
-                self.line += 1;
-                self.column_offset = self.current;
+        let mut value = Vec::new();
+        while !self.is_at_end() {
+            match self.source.next_if(|&x| x != '"') {
+                Some(c) => { value.push(c); },
+                None => { break; },
             }
-
-            self.advance();
         }
 
         if self.is_at_end() {
@@ -118,23 +137,26 @@ impl Scanner {
 
         self.advance();  // Move to the closing double quotes.
 
+        let value: String = value.into_iter().collect();
+
         // Literal does not include the double quotes unlike the lexeme.
-        let value = self.source.substring(self.start + 1, self.current - 1);
-        self.add_token(Type::String, Some(Literal::String(String::from(value))));
+        self.add_token(Type::String, value.clone(), Some(Literal::String(value)));
     }
 
     /// Handles a number literal.
     fn number(&mut self) {
+        let mut value = Vec::new();
+
         while self.peek().is_ascii_digit() {
-            self.advance();
+            value.push(self.advance());
         }
 
-        if self.peek() == '.' {
+        if *self.peek() == '.' {
             if self.peek_next().is_ascii_digit() {
-                self.advance();  // Consume the dot.
+                value.push(self.advance());  // Consume the dot.
 
                 while self.peek().is_ascii_digit() {
-                    self.advance();
+                    value.push(self.advance());
                 }
             } else {
                 ScanError {
@@ -145,19 +167,23 @@ impl Scanner {
             }
         }
 
-        let value: f32 = self.source.substring(self.start, self.current).parse().unwrap();
-        self.add_token(Type::Number, Some(Literal::Number(value)));
+        let value: String = value.into_iter().collect();
+        let value_num: f32 = value.parse().unwrap();
+
+        self.add_token(Type::Number, value, Some(Literal::Number(value_num)));
     }
 
     /// Handles an identifier or a keyword.
     fn identifier(&mut self) {
+        let mut value = Vec::new();
+
         // is_alphanumeric does not include underscores.
-        while matches!(self.peek(), c if c.is_alphanumeric() || c == '_') {
-            self.advance();
+        while matches!(self.peek(), c if c.is_alphanumeric() || *c == '_') {
+            value.push(self.advance());
         }
 
-        let value = self.source.substring(self.start, self.current);
-        let token_type = match value {
+        let value = String::from_iter(value);
+        let token_type = match value.as_str() {
             "and"      => Type::And,
             "class"    => Type::Class,
             "else"     => Type::Else,
@@ -178,69 +204,73 @@ impl Scanner {
             _          => Type::Identifier,
         };
 
-        self.add_token(token_type, None);
+        self.add_token(token_type, value, None);
     }
 
     /// Scans the next token.
     fn scan_token(&mut self) {
-        let c = self.advance();
+        let c = *self.peek();
         match c {
             // One character tokens
-            '(' => self.add_token(Type::LeftParen, None),
-            ')' => self.add_token(Type::RightParen, None),
-            '{' => self.add_token(Type::LeftBrace, None),
-            '}' => self.add_token(Type::RightBrace, None),
-            ',' => self.add_token(Type::Comma, None),
-            '.' => self.add_token(Type::Dot, None),
-            '-' => self.add_token(Type::Minus, None),
-            '+' => self.add_token(Type::Plus, None),
-            ';' => self.add_token(Type::Semicolon, None),
-            '*' => self.add_token(Type::Star, None),
+            '(' => self.add_single_char_token(Type::LeftParen),
+            ')' => self.add_single_char_token(Type::RightParen),
+            '{' => self.add_single_char_token(Type::LeftBrace),
+            '}' => self.add_single_char_token(Type::RightBrace),
+            ',' => self.add_single_char_token(Type::Comma),
+            '.' => self.add_single_char_token(Type::Dot),
+            '-' => self.add_single_char_token(Type::Minus),
+            '+' => self.add_single_char_token(Type::Plus),
+            ';' => self.add_single_char_token(Type::Semicolon),
+            '*' => self.add_single_char_token(Type::Star),
 
             // Two character tokens
             '!' => {
                 if self.match_next('=') {
-                    self.add_token(Type::BangEqual, None);
+                    self.add_double_char_token(Type::BangEqual);
                 } else {
-                    self.add_token(Type::Bang, None)
+                    self.add_single_char_token(Type::Bang)
                 };
             },
             '=' => {
                 if self.match_next('=') {
-                    self.add_token(Type::EqualEqual, None);
+                    self.add_double_char_token(Type::EqualEqual);
                 } else {
-                    self.add_token(Type::Equal, None)
+                    self.add_single_char_token(Type::Equal)
                 };
             },
             '<' => {
                 if self.match_next('=') {
-                    self.add_token(Type::LessEqual, None);
+                    self.add_double_char_token(Type::LessEqual);
                 } else {
-                    self.add_token(Type::Less, None)
+                    self.add_single_char_token(Type::Less)
                 };
             },
             '>' => {
                 if self.match_next('=') {
-                    self.add_token(Type::GreaterEqual, None);
+                    self.add_double_char_token(Type::GreaterEqual);
                 } else {
-                    self.add_token(Type::Greater, None)
+                    self.add_single_char_token(Type::Greater)
                 };
             },
             '/' => {
                 if self.match_next('/') {
-                    while self.peek() != '\n' && !self.is_at_end() {
+                    while *self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 } else {
-                    self.add_token(Type::Slash, None);
+                    self.add_single_char_token(Type::Slash);
                 }
             },
 
             // Ignore whitespace
-            ' ' | '\r' | '\t' => {},
+            ' ' | '\r' | '\t' => {
+                self.advance();
+            },
 
             // Update line counter
             '\n' => {
+                self.advance();
+
                 self.line += 1;
                 self.column_offset = self.current;
             },
