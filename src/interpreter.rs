@@ -317,7 +317,9 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
         if let Object::Instance(ref instance) = object {
             return instance.borrow().get(&expr.name, &object).unwrap_or_else(|err| {
                 err.throw();
-                todo!("Make this a real runtime error");
+
+                //TODO: Make this a real runtime error
+                return Object::Literal(Literal::Null);
             });
         }
 
@@ -326,7 +328,8 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
             message: "Only instances have properties".to_owned(),
         }.throw();
 
-        todo!("Make this a real runtime error");
+        //TODO: Make this a real runtime error
+        return Object::Literal(Literal::Null);
     }
 
     fn visit_set_expr(&mut self, expr: &Expr) -> Object {
@@ -346,7 +349,8 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
                     message: "Only instances can have fields".to_string(),
                 }.throw();
 
-                todo!("Make this a real runtime error");
+                //TODO: Make this a real runtime error
+                return Object::Literal(Literal::Null);
             }
         }
     }
