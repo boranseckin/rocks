@@ -122,7 +122,10 @@ impl<'a> Scanner<'a> {
         let mut value = Vec::new();
         while !self.is_at_end() {
             match self.source.next_if(|&x| x != '"') {
-                Some(c) => { value.push(c); },
+                Some(c) => {
+                    self.current += 1;
+                    value.push(c);
+                },
                 None => { break; },
             }
         }
