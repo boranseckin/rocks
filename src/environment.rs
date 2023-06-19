@@ -72,11 +72,11 @@ impl Environment {
     /// Works like [`Environment::assign`] but assigns the value to the variable in the ancestor
     /// environment at the given distance.
     pub fn assign_at(&mut self, distance: usize, name: &Token, value: Object) {
-        if distance > 0 {
-            self.ancestor(distance).borrow_mut().variables.insert(name.lexeme.clone(), value);
-        } else {
-            self.variables.insert(name.lexeme.clone(), value);
+        if distance == 0 {
+            return self.assign(name, value);
         }
+
+        self.ancestor(distance).borrow_mut().assign(name, value);
     }
 
     /// Returns the value of the variable with the given name.
@@ -102,23 +102,11 @@ impl Environment {
     /// Works like [`Environment::get`] but gets the value of the variable in the ancestor
     /// environment at the given distance.
     pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, RuntimeError> {
-        if distance > 0 {
-            match self.ancestor(distance).borrow().variables.get(&name.lexeme) {
-                Some(variable) => Ok(variable.clone()),
-                None => Err(RuntimeError {
-                    token: name.clone(),
-                    message: format!("Undefined variable '{}'", name.lexeme),
-                }),
-            }
-        } else {
-            match self.variables.get(&name.lexeme) {
-                Some(variable) => Ok(variable.clone()),
-                None => Err(RuntimeError {
-                    token: name.clone(),
-                    message: format!("Undefined variable '{}'", name.lexeme),
-                }),
-            }
+        if distance == 0 {
+            return self.get(name);
         }
+
+        return self.ancestor(distance).borrow().get(name);
     }
 }
 
