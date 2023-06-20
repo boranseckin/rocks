@@ -1,0 +1,22 @@
+fun caller(g) {
+  g();
+  // g should be a function, not null.
+  print g; // expect: <function f>
+}
+
+fun callCaller() {
+  var capturedVar = "before";
+  var a = "a";
+
+  fun f() {
+    // Commenting the next line out prevents the bug!
+    capturedVar = "after";
+
+    // Returning anything also fixes it, even null:
+    //return null;
+  }
+
+  caller(f);
+}
+
+callCaller();
