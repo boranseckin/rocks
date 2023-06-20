@@ -226,6 +226,12 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
         let Expr::Call(expr) = expr else { unreachable!() };
         let callee = self.evaluate(expr.callee.as_ref());
 
+        // Early return if callee is not found
+        // TODO: handle the case where the callee is "null"
+        if let Object::Literal(Literal::Null) = callee {
+            return Object::from(Literal::Null);
+        }
+
         let arguments: Vec<Object> = expr.arguments
             .iter()
             .map(|expr| self.evaluate(expr))

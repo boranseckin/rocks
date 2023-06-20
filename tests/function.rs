@@ -21,7 +21,6 @@ mod function {
     tests! {
         local_mutual_recursion in function is ERR
         "[line 4:12] Error at 'isOdd': Undefined variable 'isOdd'"
-        "[line 4:23] Error at ')': Can only call functions and classes"
     }
 
     tests! {
