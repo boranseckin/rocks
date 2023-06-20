@@ -71,7 +71,10 @@ impl Interpreter {
         self.environment = environment;
 
         for statement in statements {
-            self.execute(statement)?;
+            if let Err(return_type) = self.execute(statement) {
+                self.environment = previous;
+                return Err(return_type);
+            }
         }
 
         self.environment = previous;
