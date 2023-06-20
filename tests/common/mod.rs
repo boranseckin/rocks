@@ -20,7 +20,7 @@ macro_rules! tests {
             let mut output = Vec::new();
             let mut rocks = rocks::new(&mut output);
 
-            rocks.run_file(format!("examples/{}/{}.rocks", stringify!($scope), stringify!($file)));
+            rocks.run_file(format!("tests/target/{}/{}.rocks", stringify!($scope), stringify!($file)));
 
             // drop rocks here to avoid compiler's drop check error before accessing output
             drop(rocks);
@@ -34,7 +34,7 @@ macro_rules! tests {
             use assert_cmd::Command;
             // output concats expected with new line
             let output = vec![$($expected),+].join("\n");
-            let file = format!("examples/{}/{}.rocks", stringify!($scope), stringify!($file));
+            let file = format!("tests/target/{}/{}.rocks", stringify!($scope), stringify!($file));
 
             Command::cargo_bin("rocks").unwrap()
                 .arg(file)
