@@ -119,7 +119,23 @@ impl<'w> ExprVisitor<Object> for Interpreter<'w> {
         let right = self.evaluate(&expr.expr);
 
         match expr.operator.r#type {
-            Type::Minus => Object::Literal(Literal::Number(-right.as_number())),
+            Type::Minus => {
+                match right {
+                    Object::Literal(Literal::Number(n)) => {
+                        Object::Literal(Literal::Number(-n))
+                    },
+                    _ => {
+                        RuntimeError {
+                            token: expr.operator.clone(),
+                            message: format!(
+                                "Unary operation '{}' is not supported for non-number types",
+                                expr.operator.lexeme
+                                ),
+                        }.throw();
+                        return Object::Literal(Literal::Null);
+                    }
+                }
+            },
             Type::Bang => Object::Literal(Literal::Bool(!right.as_bool())),
             _ => unreachable!(),
         }
