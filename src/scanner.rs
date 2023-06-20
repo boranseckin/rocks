@@ -125,6 +125,10 @@ impl<'a> Scanner<'a> {
                 Some(c) => {
                     self.current += 1;
                     value.push(c);
+
+                    if c == '\n' {
+                        self.line += 1;
+                    }
                 },
                 None => { break; },
             }
