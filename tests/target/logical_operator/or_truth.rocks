@@ -1,0 +1,10 @@
+// False and null are false.
+print false or "ok"; // expect: ok
+print null or "ok"; // expect: ok
+print 0 or "ok"; // expect: ok
+print "" or "ok"; // expect: ok
+
+// Everything else is true.
+print true or "ok"; // expect: true
+print 1 or "ok"; // expect: 1
+print "s" or "ok"; // expect: s
