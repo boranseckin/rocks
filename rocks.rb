@@ -3,16 +3,10 @@ class Rocks < Formula
   homepage "https://github.com/boranseckin/rocks"
   url "https://github.com/boranseckin/rocks/releases/latest/download/rocks.tar.gz"
   version "0.1.1"
-  sha256 "78d9d05ca5c0573ff532fc88356f10cb5638ae5c2ef06df12158caa20ad90fde"
+  sha256 "e8da60f59822bbe71bab71f4bb39b05f67f369b6e52f000e5773c93158268f24"
   license "MIT"
 
-  depends_on "rust" => :build
-
   def install
-    system "cargo", "install", *std_cargo_args
-  end
-
-  test do
-    system "cargo", "test", *std_cargo_args
+    bin.install "rocks"
   end
 end
