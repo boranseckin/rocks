@@ -25,35 +25,53 @@ macro_rules! matches {
 /// a top-down, left-to-right manner. The lower rule is, the higher precedence
 /// it has. Therefore the parser will start parsing from the top rule but will
 /// go down to the lower rules if it finds a match.
+///
+/// # Syntax Grammer
 /// ```text
-/// - Program     -> Decleration* EOF ;
-/// - Block       -> "{" Decleration* "}" ;
-/// - Decleration -> ClassDecl | FunDecl | VarDecl | Statement ;
-/// - ClassDecl   -> "class" IDENTIFIER ( "<" IDENTIFIER )? "{" Function* "}" ;
-/// - FunDecl     -> "fun" Function ;
-/// - VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
-/// - Function    -> IDENTIFIER "(" Parameters? ")" Block ;
-/// - Parameters  -> IDENTIFIER ( "," IDENTIFIER )* ;
-/// - Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | BreakStmt | WhileStmt | Block ;
-/// - ExprStmt    -> Expression ";" ;
-/// - ForStmt     -> "for" "(" ( Decleration | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
-/// - IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
-/// - PrintStmt   -> "print" Expression ";" ;
-/// - ReturnStmt  -> "return" Expression? ";" ;
-/// - BreakStmt   -> "break" ";" ;
-/// - WhileStmt   -> "while" "(" Expression ")" Statement ;
-/// - Expression  -> Assignment ;
-/// - Assignment  -> ( Call "." )? IDENTIFIER "=" Assignment | LogicOr ;
-/// - LogicOr     -> LogicAnd ( "or" LogicAnd )* ;
-/// - LogicAnd    -> Equality ( "and" Equality )* ;
-/// - Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
-/// - Comparison  -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
-/// - Term        -> Factor ( ( "+" | "-" ) Factor )* ;
-/// - Factor      -> Unary ( ( "*" | "/" ) Unary )* ;
-/// - Unary       -> ( "!" | "-" ) Unary | Primary ;
-/// - Arguments   -> Expression ( "," Expression )* ;
-/// - Call        -> Primary ( "(" Arguments? ")" | "." IDENTIFIER )* ;
-/// - Primary     -> NUMBER | STRING | "false" | "true" | "null" | "this" | "(" Expression ")" | IDENTIFIER | "super" "." IDENTIFIER ;
+/// Program     -> Decleration* EOF ;
+/// ```
+///
+/// ### Declarations
+/// ```text
+/// Declaration -> ClassDecl | FunDecl | VarDecl | Statement ;
+/// ClassDecl   -> "class" IDENTIFIER ( "<" IDENTIFIER )? "{" Function* "}" ;
+/// FunDecl     -> "fun" Function ;
+/// VarDecl     -> "var" IDENTIFIER ( "=" Expression )? ";" ;
+/// ```
+///
+/// ### Statements
+/// ```text
+/// Statement   -> ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | BreakStmt | WhileStmt | Block ;
+/// ExprStmt    -> Expression ";" ;
+/// ForStmt     -> "for" "(" ( VarDecl | ExprStmt | ";" ) Expression? ";" Expression? ")" Statement ;
+/// IfStmt      -> "if" "(" Expression ")" Statement ( "else" Statement )? ;
+/// PrintStmt   -> "print" Expression ";" ;
+/// ReturnStmt  -> "return" Expression? ";" ;
+/// BreakStmt   -> "break" ";" ;
+/// WhileStmt   -> "while" "(" Expression ")" Statement ;
+/// Block       -> "{" Decleration* "}" ;
+/// ```
+///
+/// ### Expressions
+/// ```text
+/// Expression  -> Assignment ;
+/// Assignment  -> ( Call "." )? IDENTIFIER "=" Assignment | LogicOr ;
+/// LogicOr     -> LogicAnd ( "or" LogicAnd )* ;
+/// LogicAnd    -> Equality ( "and" Equality )* ;
+/// Equality    -> Comparison ( ( "!=" | "==" ) Comparison )* ;
+/// Comparison  -> Term ( ( ">" | ">=" | "<" | "<=" ) Term )* ;
+/// Term        -> Factor ( ( "+" | "-" ) Factor )* ;
+/// Factor      -> Unary ( ( "*" | "/" ) Unary )* ;
+/// Unary       -> ( "!" | "-" ) Unary | Call ;
+/// Call        -> Primary ( "(" Arguments? ")" | "." IDENTIFIER )* ;
+/// Primary     -> NUMBER | STRING | "false" | "true" | "null" | "this" | "(" Expression ")" | IDENTIFIER | "super" "." IDENTIFIER ;
+/// ```
+///
+/// ### Misc
+/// ```text
+/// Function    -> IDENTIFIER "(" Parameters? ")" Block ;
+/// Parameters  -> IDENTIFIER ( "," IDENTIFIER )* ;
+/// Arguments   -> Expression ( "," Expression )* ;
 /// ```
 pub struct Parser {
     /// The tokens to parse.
