@@ -1,3 +1,5 @@
+<img src="https://github.com/boranseckin/rocks/assets/13941297/ceb2d5f8-a6bc-4a8b-9290-427f6b39b3f6" width="256"/>
+
 [![crates.io](https://img.shields.io/crates/v/rocks-lang)](https://crates.io/crates/rocks-lang)
 [![docs.rs](https://img.shields.io/docsrs/rocks-lang)](https://docs.rs/rocks-lang/latest)
 [![dependencies](https://deps.rs/repo/github/boranseckin/rocks/status.svg)](https://deps.rs/repo/github/boranseckin/rocks)
