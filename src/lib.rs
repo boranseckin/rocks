@@ -6,7 +6,7 @@
 //!
 //! Rocks is a dynamically typed language. This means that the type of a variable is determined at
 //! runtime. This is in contrast to statically typed languages, where the type of a variable is
-//! determined at compile time. Dynamically typed languages are often easier to use, but are
+//! determined at compile time. Dynamically typed languages are often easier to use but are
 //! generally slower than statically typed languages.
 //!
 //! Rocks is a tree-walk interpreter. This means that the interpreter walks the abstract syntax tree
@@ -42,8 +42,8 @@
 //! and statements. [`Expressions`](expr::Expr) are pieces of code that produce a value, specifically an
 //! [`Object`](object::Object). Objects are an umbrella term for all types of values in Rocks
 //! including literals, functions, classes and instances. [`Statements`](stmt::Stmt) are pieces of code
-//! that do not produce a value but instead perform some action. These actions modify the state of the
-//! program and thus, are called side-effects. For example, a variable decleration or an if clause
+//! that do not produce a value but instead, perform some action. These actions modify the state of the
+//! program and thus, are called side-effects. For example, a variable declaration or an if clause
 //! would be classified as statements.
 //!
 //! For example, the string `print 1 + 2;` would be converted into the following AST:
@@ -69,7 +69,7 @@
 //! ## Resolving
 //! The third step in the interpreter is resolving. Resolving is the process of statically analyzing
 //! the AST to determine the scope of each variable. While this requires a pre-pass of the AST, it
-//! is necessary to construct robust lexiacl scoping. The resolver is implemented in the
+//! is necessary to construct robust lexical scoping. The resolver is implemented in the
 //! [`resolver`](resolver) module as a tree-walk interpreter. The resolver is run after the parser
 //! because it requires the AST to be fully constructed. The resolver reports errors as a
 //! [`ResolveError`](error::ResolveError). These errors are syntactically valid but semantically invalid.
