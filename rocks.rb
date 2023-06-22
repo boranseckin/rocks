@@ -2,8 +2,8 @@ class Rocks < Formula
   desc "Interpreter for rocks-lang"
   homepage "https://github.com/boranseckin/rocks"
   url "https://github.com/boranseckin/rocks/releases/latest/download/rocks.tar.gz"
-  version "0.1.1"
-  sha256 "e8da60f59822bbe71bab71f4bb39b05f67f369b6e52f000e5773c93158268f24"
+  version "0.2.0"
+  sha256 "4da60c028f00a9275adc1d9ef7b40e3d3db827cd27a5c3c638991bbe0e2a9b55"
   license "MIT"
 
   def install
