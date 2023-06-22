@@ -63,15 +63,15 @@ impl Error for ParseError {
         if self.token.r#type == Type::EOF {
             eprintln!(
                 "[line {line}:{column}] Error at end: {message}",
-                line = self.token.location.line,
-                column = self.token.location.column,
+                line = self.token.location.line + 1,
+                column = self.token.location.column + 1,
                 message = self.message
             );
         } else {
             eprintln!(
                 "[line {line}:{column}] Error at '{lexeme}': {message}",
-                line = self.token.location.line,
-                column = self.token.location.column,
+                line = self.token.location.line + 1,
+                column = self.token.location.column + 1,
                 lexeme = self.token.lexeme,
                 message = self.message
             );
@@ -94,8 +94,8 @@ impl Error for ResolveError {
     fn throw(&self) {
         eprintln!(
             "[line {line}:{column}] Error at '{lexeme}': {message}",
-            line = self.token.location.line,
-            column = self.token.location.column,
+            line = self.token.location.line + 1,
+            column = self.token.location.column + 1,
             lexeme = self.token.lexeme,
             message = self.message
         );
@@ -117,8 +117,8 @@ impl Error for RuntimeError {
     fn throw(&self) {
         eprintln!(
             "[line {line}:{column}] Error at '{lexeme}': {message}",
-            line = self.token.location.line,
-            column = self.token.location.column,
+            line = self.token.location.line + 1,
+            column = self.token.location.column + 1,
             lexeme = self.token.lexeme,
             message = self.message
         );

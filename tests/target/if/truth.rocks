@@ -1,0 +1,8 @@
+// False and nil are false.
+if (false) print "bad"; else print "false"; // expect: false
+if (null) print "bad"; else print "null"; // expect: null
+
+// Everything else is true.
+if (true) print true; // expect: true
+if (0) print "bad"; else print 0; // expect: 0
+if ("") print "bad"; else print "empty"; // expect: empty

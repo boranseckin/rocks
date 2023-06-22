@@ -5,7 +5,7 @@ use std::fmt;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     String(String),
-    Number(f32),
+    Number(f64),
     Bool(bool),
     Null,
 }
@@ -16,12 +16,12 @@ impl Literal {
     /// - If the literal is a boolean, it will return 1.0 if true, 0.0 if false.
     /// - If the literal is null, it will return 0.0.
     /// - If the literal is a string, it will attempt to parse it as a number or return 0.0.
-    pub fn as_number(&self) -> f32 {
+    pub fn as_number(&self) -> f64 {
         match self {
             Literal::Number(n) => *n,
             Literal::Bool(b) => if *b { 1.0 } else { 0.0 },
             Literal::Null => 0.0,
-            Literal::String(s) => s.parse::<f32>().unwrap_or(0.0),
+            Literal::String(s) => s.parse::<f64>().unwrap_or(0.0),
         }
     }
 
@@ -52,8 +52,8 @@ impl From<String> for Literal {
     }
 }
 
-impl From<f32> for Literal {
-    fn from(n: f32) -> Self {
+impl From<f64> for Literal {
+    fn from(n: f64) -> Self {
         Literal::Number(n)
     }
 }

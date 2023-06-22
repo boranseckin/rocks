@@ -117,7 +117,7 @@ impl<'a> Scanner<'a> {
     /// Handles a string literal.
     fn string(&mut self) {
         self.advance(); // Move past the starting double quotes.
-        let start = (self.line, self.start);
+        let start = (self.line, self.start - self.column_offset);
 
         let mut value = Vec::new();
         while !self.is_at_end() {
@@ -125,6 +125,10 @@ impl<'a> Scanner<'a> {
                 Some(c) => {
                     self.current += 1;
                     value.push(c);
+
+                    if c == '\n' {
+                        self.line += 1;
+                    }
                 },
                 None => { break; },
             }
@@ -163,7 +167,7 @@ impl<'a> Scanner<'a> {
                 }
             } else {
                 ScanError {
-                    location: Location::new(self.line, self.start),
+                    location: Location::new(self.line, self.start - self.column_offset),
                     message: String::from("Unterminated number"),
                 }.throw();
                 return;
@@ -171,7 +175,7 @@ impl<'a> Scanner<'a> {
         }
 
         let value: String = value.into_iter().collect();
-        let value_num: f32 = value.parse().unwrap();
+        let value_num: f64 = value.parse().unwrap();
 
         self.add_token(Type::Number, value, Some(Literal::Number(value_num)));
     }
@@ -288,6 +292,8 @@ impl<'a> Scanner<'a> {
             c if c.is_alphabetic() || c == '_' => self.identifier(),
 
             _ => {
+                self.advance();
+
                 ScanError {
                     location: Location::new(self.line, self.start - self.column_offset),
                     message: format!("Unexpected character '{c}'"),
