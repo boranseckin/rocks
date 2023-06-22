@@ -292,6 +292,8 @@ impl<'a> Scanner<'a> {
             c if c.is_alphabetic() || c == '_' => self.identifier(),
 
             _ => {
+                self.advance();
+
                 ScanError {
                     location: Location::new(self.line, self.start - self.column_offset),
                     message: format!("Unexpected character '{c}'"),
