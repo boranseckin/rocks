@@ -1,6 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/rocks-lang)](https://crates.io/crates/rocks-lang)
 [![docs.rs](https://img.shields.io/docsrs/rocks-lang)](https://docs.rs/rocks-lang/latest)
 [![dependencies](https://deps.rs/repo/github/boranseckin/rocks/status.svg)](https://deps.rs/repo/github/boranseckin/rocks)
+[![codecov](https://codecov.io/github/boranseckin/rocks/branch/main/graph/badge.svg?token=4wG6W8L1v3)](https://codecov.io/github/boranseckin/rocks)
 
 # rocks-lang
 
@@ -10,13 +11,13 @@ recursive descent parser. Rocks is a hobby project and is not intended for produ
 
 Rocks is a dynamically typed language. This means that the type of a variable is determined at
 runtime. This is in contrast to statically typed languages, where the type of a variable is
-determined at compile time. Dynamically typed languages are often easier to use, but are
+determined at compile time. Dynamically typed languages are often easier to use but are
 generally slower than statically typed languages.
 
 Rocks is a tree-walk interpreter. This means that the interpreter walks the abstract syntax tree
 (AST) and evaluates each node. This is in contrast to a compiler, which would convert the AST
 into bytecode or machine code. Tree-walk interpreters are generally easier to implement than
-compilers, but are generally slower than compilers.
+compilers but are generally slower than compilers.
 
 Rocks is a hobby project and is not intended for production use. The goal of this project is to
 learn more about programming languages and interpreters. This project is inspired by the
@@ -47,7 +48,7 @@ and statements. [`Expressions`](src/expr.rs) are pieces of code that produce a v
 [`Object`](src/object.rs). Objects are an umbrella term for all types of values in Rocks
 including literals, functions, classes and instances. [`Statements`](src/stmt.rs) are pieces of code
 that do not produce a value but instead perform some action. These actions modify the state of the
-program and thus, are called side-effects. For example, a variable decleration or an if clause
+program and thus, are called side-effects. For example, a variable declaration or an if clause
 would be classified as statements.
 
 For example, the string `print 1 + 2;` would be converted into the following AST:
@@ -73,7 +74,7 @@ because it allows the user to fix multiple syntax errors at once.
 ### Resolving
 The third step in the interpreter is resolving. Resolving is the process of statically analyzing
 the AST to determine the scope of each variable. While this requires a pre-pass of the AST, it
-is necessary to construct robust lexiacl scoping. The resolver is implemented in the
+is necessary to construct robust lexical scoping. The resolver is implemented in the
 [`resolver`](src/resolver.rs) module as a tree-walk interpreter. The resolver is run after the parser
 because it requires the AST to be fully constructed. The resolver reports errors as a
 [`ResolveError`](src/error.rs). These errors are syntactically valid but semantically invalid.
