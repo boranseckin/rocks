@@ -23,6 +23,11 @@ Rocks is a hobby project and is not intended for production use. The goal of thi
 learn more about programming languages and interpreters. This project is inspired by the
 [Crafting Interpreters](https://craftinginterpreters.com/) book by Bob Nystrom.
 
+You can install the interpreter using the command below.
+```
+cargo install rocks-lang
+```
+
 ### Scanning
 The first step in the interpreter is scanning. Scanning is the process of converting a string of
 characters into a list of tokens. A token is a single unit of a programming language. For
