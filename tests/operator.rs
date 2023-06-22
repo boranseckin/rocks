@@ -149,7 +149,7 @@ mod operator {
     tests! {
         multiply in operator is OK
         "15"
-        "3.7020001"
+        "3.702"
     }
 
     tests! {
