@@ -122,14 +122,14 @@ use scanner::Scanner;
 use resolver::Resolver;
 
 #[allow(non_camel_case_types)]
-pub struct rocks {
-    interpreter: interpreter::Interpreter,
+pub struct rocks<'w> {
+    interpreter: interpreter::Interpreter<'w>,
 }
 
-impl rocks {
-    pub fn new() -> Self {
+impl<'w> rocks<'w> {
+    pub fn new<W: std::io::Write>(writer: &'w mut W) -> Self {
         rocks {
-            interpreter: interpreter::Interpreter::new(),
+            interpreter: interpreter::Interpreter::new(writer),
         }
     }
 
@@ -168,8 +168,12 @@ impl rocks {
         rl.save_history(&history_path).ok();
     }
 
-    fn run(&mut self, source: String) {
-        let mut scanner = Scanner::new(source);
+    fn run(&mut self, mut source: String) {
+        if !source.ends_with('\n') {
+            source.push('\n');
+        }
+
+        let mut scanner = Scanner::new(&source);
         let tokens = scanner.scan_tokens();
 
         if error::did_error() {
@@ -194,8 +198,8 @@ impl rocks {
     }
 }
 
-impl Default for rocks {
+impl<'w> Default for rocks<'w> {
     fn default() -> Self {
-        Self::new()
+        Self::new(Box::leak(Box::new(std::io::stdout())))
     }
 }

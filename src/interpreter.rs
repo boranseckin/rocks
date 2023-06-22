@@ -12,15 +12,16 @@ use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Type, Token};
 use crate::literal::Literal;
 
-pub struct Interpreter {
+pub struct Interpreter<'w> {
     // Interior mutability with multiple owners
     environment: Rc<RefCell<Environment>>,
     globals: Rc<RefCell<Environment>>,
     locals: HashMap<Token, usize>,
+    writer: Box<dyn std::io::Write + 'w>,
 }
 
-impl Interpreter {
-    pub fn new() -> Self {
+impl<'w> Interpreter<'w> {
+    pub fn new<W: std::io::Write>(writer: &'w mut W) -> Self {
         let globals = Rc::new(RefCell::new(Environment::default()));
 
         NativeFunction::get_globals().iter().for_each(|native| {
@@ -31,6 +32,7 @@ impl Interpreter {
             environment: Rc::clone(&globals),
             globals: Rc::clone(&globals),
             locals: HashMap::new(),
+            writer: Box::new(writer),
         }
     }
 
@@ -71,7 +73,10 @@ impl Interpreter {
         self.environment = environment;
 
         for statement in statements {
-            self.execute(statement)?;
+            if let Err(return_type) = self.execute(statement) {
+                self.environment = previous;
+                return Err(return_type);
+            }
         }
 
         self.environment = previous;
@@ -84,13 +89,13 @@ impl Interpreter {
     }
 }
 
-impl Default for Interpreter {
+impl<'w> Default for Interpreter<'w> {
     fn default() -> Self {
-        Self::new()
+        Self::new(Box::leak(Box::new(std::io::stdout())))
     }
 }
 
-impl ExprVisitor<Object> for Interpreter {
+impl<'w> ExprVisitor<Object> for Interpreter<'w> {
     fn visit_literal_expr(&mut self, expr: &Expr) -> Object {
         let Expr::Literal(expr) = expr else { unreachable!() };
         Object::Literal(expr.clone())
@@ -114,7 +119,23 @@ impl ExprVisitor<Object> for Interpreter {
         let right = self.evaluate(&expr.expr);
 
         match expr.operator.r#type {
-            Type::Minus => Object::Literal(Literal::Number(-right.as_number())),
+            Type::Minus => {
+                match right {
+                    Object::Literal(Literal::Number(n)) => {
+                        Object::Literal(Literal::Number(-n))
+                    },
+                    _ => {
+                        RuntimeError {
+                            token: expr.operator.clone(),
+                            message: format!(
+                                "Unary operation '{}' is not supported for non-number types",
+                                expr.operator.lexeme
+                                ),
+                        }.throw();
+                        return Object::Literal(Literal::Null);
+                    }
+                }
+            },
             Type::Bang => Object::Literal(Literal::Bool(!right.as_bool())),
             _ => unreachable!(),
         }
@@ -211,7 +232,7 @@ impl ExprVisitor<Object> for Interpreter {
         } else {
             RuntimeError {
                 token: expr.operator.clone(),
-                message: "Binary operation with non-literal objects is not supported".to_string(),
+                message: "Binary operation with non-literal types is not supported".to_string(),
             }.throw();
             return Object::Literal(Literal::Null);
         }
@@ -220,6 +241,12 @@ impl ExprVisitor<Object> for Interpreter {
     fn visit_call_expr(&mut self, expr: &Expr) -> Object {
         let Expr::Call(expr) = expr else { unreachable!() };
         let callee = self.evaluate(expr.callee.as_ref());
+
+        // Early return if callee is not found
+        // TODO: handle the case where the callee is "null"
+        if let Object::Literal(Literal::Null) = callee {
+            return Object::from(Literal::Null);
+        }
 
         let arguments: Vec<Object> = expr.arguments
             .iter()
@@ -312,7 +339,9 @@ impl ExprVisitor<Object> for Interpreter {
         if let Object::Instance(ref instance) = object {
             return instance.borrow().get(&expr.name, &object).unwrap_or_else(|err| {
                 err.throw();
-                todo!("Make this a real runtime error");
+
+                //TODO: Make this a real runtime error
+                return Object::Literal(Literal::Null);
             });
         }
 
@@ -321,7 +350,8 @@ impl ExprVisitor<Object> for Interpreter {
             message: "Only instances have properties".to_owned(),
         }.throw();
 
-        todo!("Make this a real runtime error");
+        //TODO: Make this a real runtime error
+        return Object::Literal(Literal::Null);
     }
 
     fn visit_set_expr(&mut self, expr: &Expr) -> Object {
@@ -341,7 +371,8 @@ impl ExprVisitor<Object> for Interpreter {
                     message: "Only instances can have fields".to_string(),
                 }.throw();
 
-                todo!("Make this a real runtime error");
+                //TODO: Make this a real runtime error
+                return Object::Literal(Literal::Null);
             }
         }
     }
@@ -380,7 +411,7 @@ impl ExprVisitor<Object> for Interpreter {
     }
 }
 
-impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
+impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
     fn visit_expression_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::Expression(data) = stmt else { unreachable!() };
         self.evaluate(&data.expr);
@@ -418,7 +449,7 @@ impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
             return Ok(());
         }
 
-        println!("{value}");
+        writeln!(self.writer, "{value}").expect("writer to not fail on write");
 
         Ok(())
     }
@@ -456,8 +487,10 @@ impl StmtVisitor<Result<(), ReturnType>> for Interpreter {
     fn visit_while_stmt(&mut self, stmt: &Stmt) -> Result<(), ReturnType> {
         let Stmt::While(data) = stmt else { unreachable!() };
         while self.evaluate(&data.condition).as_bool() {
-            if let Err(ReturnType::Break(_)) = self.execute(&data.body) {
-                break;
+            match self.execute(&data.body) {
+                Err(ReturnType::Break(_)) => break,
+                Err(err)=> return Err(err),
+                _ => {},
             }
         }
 

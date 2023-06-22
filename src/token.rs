@@ -6,24 +6,24 @@ use crate::literal::Literal;
 /// Represents a token type in the language.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Type {
-  // Single-character tokens.
-  LeftParen, RightParen, LeftBrace, RightBrace,
-  Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
+    // Single-character tokens.
+    LeftParen, RightParen, LeftBrace, RightBrace,
+    Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
 
-  // One or two character tokens.
-  Bang, BangEqual,
-  Equal, EqualEqual,
-  Greater, GreaterEqual,
-  Less, LessEqual,
+    // One or two character tokens.
+    Bang, BangEqual,
+    Equal, EqualEqual,
+    Greater, GreaterEqual,
+    Less, LessEqual,
 
-  // Literals.
-  Identifier, String, Number,
+    // Literals.
+    Identifier, String, Number,
 
-  // Keywords.
-  And, Class, Else, False, Fun, For, If, Null, Or,
-  Print, Return, Break, Super, This, True, Var, While,
+    // Keywords.
+    And, Class, Else, False, Fun, For, If, Null, Or,
+    Print, Return, Break, Super, This, True, Var, While,
 
-  EOF
+    EOF
 }
 
 /// Represents a location in the source code.
