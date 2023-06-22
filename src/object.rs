@@ -21,7 +21,7 @@ pub enum Object {
 
 impl Object {
     /// Returns the object as a number if it is a literal.
-    pub fn as_number(&self) -> f32 {
+    pub fn as_number(&self) -> f64 {
         match self {
             Object::Literal(literal) => literal.as_number(),
             _ => panic!("Cannot convert non-literal object to number"),
@@ -43,8 +43,8 @@ impl From<Literal> for Object {
     }
 }
 
-impl From<f32> for Object {
-    fn from(number: f32) -> Self {
+impl From<f64> for Object {
+    fn from(number: f64) -> Self {
         Object::Literal(Literal::Number(number))
     }
 }

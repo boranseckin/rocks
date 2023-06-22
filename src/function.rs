@@ -142,7 +142,7 @@ impl NativeFunction {
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
-                    Ok(Object::from(now as f32))
+                    Ok(Object::from(now as f64))
                 },
             },
             NativeFunction {

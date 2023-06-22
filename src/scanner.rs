@@ -175,7 +175,7 @@ impl<'a> Scanner<'a> {
         }
 
         let value: String = value.into_iter().collect();
-        let value_num: f32 = value.parse().unwrap();
+        let value_num: f64 = value.parse().unwrap();
 
         self.add_token(Type::Number, value, Some(Literal::Number(value_num)));
     }
