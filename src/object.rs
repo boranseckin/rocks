@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::cell::RefCell;
+use std::ops::{Mul, Div, Add, Sub, Not, Neg};
 use std::rc::Rc;
 
 use crate::class::{Class, Instance};
@@ -20,20 +21,110 @@ pub enum Object {
 }
 
 impl Object {
-    /// Returns the object as a number if it is a literal.
-    pub fn as_number(&self) -> f64 {
+    /// Returns the object as a boolean if it is a literal.
+    pub fn as_bool(&self) -> Option<bool> {
         match self {
-            Object::Literal(literal) => literal.as_number(),
-            _ => panic!("Cannot convert non-literal object to number"),
+            Object::Literal(literal) => Some(literal.as_bool()),
+            _ => None,
         }
     }
 
-    /// Returns the object as a boolean if it is a literal.
-    pub fn as_bool(&self) -> bool {
+    pub fn type_str(&self) -> &str {
         match self {
-            Object::Literal(literal) => literal.as_bool(),
-            _ => panic!("Cannot convert non-literal object to bool"),
+            Object::Literal(literal) => literal.type_str(),
+            Object::Function(_) => "function",
+            Object::NativeFunction(_) => "native function",
+            Object::Class(_) => "class",
+            Object::Instance(_) => "instance",
         }
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Object::Literal(left), Object::Literal(right)) => left == right,
+            (Object::Function(left), Object::Function(right)) => left == right,
+            (Object::NativeFunction(left), Object::NativeFunction(right)) => left == right,
+            (Object::Class(left), Object::Class(right)) => left == right,
+            (Object::Instance(left), Object::Instance(right)) => left == right,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Object {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Object::Literal(left), Object::Literal(right)) => left.partial_cmp(right),
+            _ => None
+        }
+    }
+}
+
+impl Add for Object {
+    type Output = Option<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Object::Literal(left), Object::Literal(right)) => left + right,
+            _ => None,
+        }.map(|x| x.into())
+    }
+}
+
+impl Sub for Object {
+    type Output = Option<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Object::Literal(left), Object::Literal(right)) => left - right,
+            _ => None,
+        }.map(|x| x.into())
+    }
+}
+
+impl Mul for Object {
+    type Output = Option<Self>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Object::Literal(left), Object::Literal(right)) => left * right,
+            _ => None,
+        }.map(|x| x.into())
+    }
+}
+
+impl Div for Object {
+    type Output = Option<Self>;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Object::Literal(left), Object::Literal(right)) => left / right,
+            _ => None,
+        }.map(|x| x.into())
+    }
+}
+
+impl Not for Object {
+    type Output = Option<Self>;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Object::Literal(right) => !right,
+            _ => None,
+        }.map(|x| x.into())
+    }
+}
+
+impl Neg for Object {
+    type Output = Option<Self>;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Object::Literal(right) => -right,
+            _ => None,
+        }.map(|x| x.into())
     }
 }
 
@@ -94,17 +185,6 @@ impl From<Instance> for Object {
 impl From<Rc<RefCell<Instance>>> for Object {
     fn from(value: Rc<RefCell<Instance>>) -> Self {
         Object::Instance(value)
-    }
-}
-
-/// Partial equality is defined as equality of the underlying literal values.
-/// If the objects are not literals, they are not equal.
-impl PartialEq for Object {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Object::Literal(left), Object::Literal(right)) => left == right,
-            _ => false,
-        }
     }
 }
 

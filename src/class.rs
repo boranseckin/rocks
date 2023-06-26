@@ -59,6 +59,12 @@ impl Display for Class {
     }
 }
 
+impl PartialEq for Class {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name;
+    }
+}
+
 impl Callable for Class {
     /// Returns the arity of the `init` method of the class. If the `init` method is not defined,
     /// it will return 0.
@@ -129,5 +135,12 @@ impl From<&Rc<RefCell<Class>>> for Instance {
 impl Display for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<instance {}>", self.class.borrow().name)
+    }
+}
+
+impl PartialEq for Instance {
+    fn eq(&self, _: &Self) -> bool {
+        // Currently there is no support for comparing instances
+        false
     }
 }

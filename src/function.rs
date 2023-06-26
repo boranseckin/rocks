@@ -101,6 +101,12 @@ impl Display for Function {
     }
 }
 
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name;
+    }
+}
+
 /// Represents a native function.
 /// This is a special type of function that is used to implement built-in functions.
 /// These functions are external to the language and are implemented in Rust.
@@ -167,5 +173,11 @@ impl Display for NativeFunction {
 impl Debug for NativeFunction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<native function {}>", self.name.lexeme)
+    }
+}
+
+impl PartialEq for NativeFunction {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name;
     }
 }
