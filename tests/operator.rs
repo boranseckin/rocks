@@ -120,11 +120,10 @@ mod operator {
         "true"
     }
 
-    // tests! {
-    //     equals_method in operator is OK
-    //     "true"
-    //     "false"
-    // }
+    tests! {
+        equals_method in operator is OK
+        "true"
+    }
 
     tests! {
         greater_literal in operator is ERR
