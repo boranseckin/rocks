@@ -30,7 +30,7 @@ impl Literal {
         match self {
             Literal::String(_) => "string",
             Literal::Number(_) => "number",
-            Literal::Bool(_) => "bool",
+            Literal::Bool(_) => "boolean",
             Literal::Null => "null",
         }
     }
