@@ -81,10 +81,16 @@ impl Callable for Function {
                     return self.closure.borrow().get_at(0, &Token::from("this"));
                 }
 
-                if let ReturnType::Return(err) = err {
-                    return Ok(err.value);
-                } else {
-                    unreachable!();
+                match err {
+                    ReturnType::Return(err) => {
+                        return Ok(err.value);
+                    },
+                    ReturnType::Error(err) => {
+                        return Err(err);
+                    },
+                    ReturnType::Break(_) => {
+                        unreachable!("function calls should not return break");
+                    } 
                 }
             },
         }
@@ -98,6 +104,12 @@ impl Callable for Function {
 impl Display for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<function {}>", self.name.lexeme)
+    }
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name;
     }
 }
 
@@ -167,5 +179,11 @@ impl Display for NativeFunction {
 impl Debug for NativeFunction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<native function {}>", self.name.lexeme)
+    }
+}
+
+impl PartialEq for NativeFunction {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name;
     }
 }

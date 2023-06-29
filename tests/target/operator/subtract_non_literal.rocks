@@ -1,0 +1,8 @@
+fun a() {}
+class b {}
+var c = b();
+
+print 123 - a;
+print 123 - b;
+print 123 - c;
+print 123 - clock;

@@ -1,0 +1,8 @@
+fun a() {}
+class b {}
+var c = b();
+
+print -a;
+print -b;
+print -c;
+print -clock;

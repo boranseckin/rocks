@@ -16,10 +16,10 @@ mod bool {
     }
 
     tests! {
-        mismatched in bool is ERR
-        "[line 1:6] Error at '==': Binary operation with mismatched literal types is not supported"
-        "[line 2:7] Error at '==': Binary operation with mismatched literal types is not supported"
-        "[line 3:6] Error at '!=': Binary operation with mismatched literal types is not supported"
+        mismatched in bool is OK
+        "false"
+        "false"
+        "true"
     }
 
     tests! {
