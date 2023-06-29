@@ -213,8 +213,9 @@ impl<'w> ExprVisitor<Result<Object, ReturnType>> for Interpreter<'w> {
 
                 return match function.call(self, arguments) {
                     Ok(value) => Ok(value),
-                    Err(mut error) => {
-                        error.token = call.paren.clone();
+                    Err(error) => {
+                        // TODO: look into implementing call stack on error
+                        // error.token = call.paren.clone();
                         return Err(ReturnType::Error(error));
                     }
                 };
@@ -229,8 +230,8 @@ impl<'w> ExprVisitor<Result<Object, ReturnType>> for Interpreter<'w> {
 
                 return match function.call(self, arguments) {
                     Ok(result) => Ok(result),
-                    Err(mut error) => {
-                        error.token = call.paren.clone();
+                    Err(error) => {
+                        // error.token = call.paren.clone();
                         return Err(ReturnType::Error(error));
                     }
                 };
@@ -245,8 +246,8 @@ impl<'w> ExprVisitor<Result<Object, ReturnType>> for Interpreter<'w> {
 
                 return match class.borrow().call(self, arguments) {
                     Ok(result) => Ok(result),
-                    Err(mut error) => {
-                        error.token = call.paren.clone();
+                    Err(error) => {
+                        // error.token = call.paren.clone();
                         return Err(ReturnType::Error(error));
                     }
                 };

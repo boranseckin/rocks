@@ -81,10 +81,16 @@ impl Callable for Function {
                     return self.closure.borrow().get_at(0, &Token::from("this"));
                 }
 
-                if let ReturnType::Return(err) = err {
-                    return Ok(err.value);
-                } else {
-                    unreachable!();
+                match err {
+                    ReturnType::Return(err) => {
+                        return Ok(err.value);
+                    },
+                    ReturnType::Error(err) => {
+                        return Err(err);
+                    },
+                    ReturnType::Break(_) => {
+                        unreachable!("function calls should not return break");
+                    } 
                 }
             },
         }
