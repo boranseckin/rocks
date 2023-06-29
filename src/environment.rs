@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -10,7 +11,7 @@ use crate::error::{RuntimeError, Error};
 /// The environment is a hash map of variable names to their values.
 /// Each environment has a reference to its enclosing environment.
 /// This is an optional reference to implement lexical scoping and closures.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Environment {
     /// Using an Rc and Refcell here allows us to have multiple mutable references
     /// to the same environment.
@@ -113,5 +114,14 @@ impl Environment {
 impl Default for Environment {
     fn default() -> Self {
         Self::new(None)
+    }
+}
+
+impl Debug for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Environment")
+            .field("enclosing", &self.enclosing)
+            .field("variables", &self.variables.keys())
+            .finish()
     }
 }
