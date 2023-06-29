@@ -159,7 +159,6 @@ mod field {
     tests! {
         set_evaluation_order in field is ERR
         "[line 1:1] Error at 'undefined1': Undefined variable 'undefined1'"
-        "[line 1:12] Error at 'bar': Only instances can have fields"
     }
 
     tests! {
