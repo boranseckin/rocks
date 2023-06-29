@@ -1,0 +1,17 @@
+true < null; // expect runtime error
+true < true; // expect runtime error
+true < "s"; // expect runtime error
+true < 123; // expect runtime error
+
+null < null; // expect runtime error
+null < true; // expect runtime error
+null < "s"; // expect runtime error
+null < 123; // expect runtime error
+
+123 < null; // expect runtime error
+123 < true; // expect runtime error
+123 < "s"; // expect runtime error
+
+"s" < null; // expect runtime error
+"s" < true; // expect runtime error
+"s" < 123; // expect runtime error

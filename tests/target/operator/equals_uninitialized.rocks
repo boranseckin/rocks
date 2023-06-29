@@ -1,0 +1,4 @@
+var a;
+var b;
+print a == null;
+print a == b;

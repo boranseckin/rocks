@@ -1,0 +1,3 @@
+print -"s"; // expect runtime error
+print -null; // expect runtime error
+print -false; // expect runtime error
