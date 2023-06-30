@@ -25,15 +25,16 @@ pub struct Function {
 impl Function {
     /// Creates a new function.
     pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>, is_initializer: bool) -> Self {
-        match stmt {
-            Stmt::Function(data) => Function {
+        if let Stmt::Function(data) = stmt {
+            Function {
                 name: data.name,
                 params: data.params,
                 body: data.body,
                 closure,
                 is_initializer,
-            },
-            _ => panic!("Expected function statement"),
+            }
+        } else {
+            unreachable!("Expected function statement")
         }
     }
 

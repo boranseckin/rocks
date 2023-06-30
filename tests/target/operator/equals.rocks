@@ -8,3 +8,6 @@ print 1 == 2; // expect: false
 
 print "str" == "str"; // expect: true
 print "str" == "ing"; // expect: false
+
+print clock == clock; // expect: true
+print clock == input; // expect: false

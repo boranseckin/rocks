@@ -37,4 +37,9 @@ mod _return {
         return_null_if_no_value in return is OK
         "null"
     }
+
+    tests! {
+        error in return is ERR
+        "[line 3:13] Error at '+': Binary operation '+' is not supported between null type and number type"
+    }
 }

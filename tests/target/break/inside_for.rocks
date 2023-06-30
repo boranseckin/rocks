@@ -1,0 +1,5 @@
+// expect: 0 1 2
+for (var a = 0; a < 5; a = a + 1) {
+  if (a == 3) break;
+  print a;
+}
