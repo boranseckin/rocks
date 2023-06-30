@@ -104,6 +104,8 @@ mod operator {
         "false"
         "true"
         "false"
+        "true"
+        "false"
     }
 
     tests! {

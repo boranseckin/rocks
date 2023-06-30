@@ -82,5 +82,9 @@ mod function {
         too_many_parameters in function is ERR
         "[line 257:11] Error at 'a': Cannot have more than 255 parameters"
     }
+
+    tests! {
+        native_functions in function is OK
+    }
 }
 
