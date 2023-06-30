@@ -1,11 +1,11 @@
 <img src="https://github.com/boranseckin/rocks/assets/13941297/ceb2d5f8-a6bc-4a8b-9290-427f6b39b3f6" width="256"/>
 
+# rocks-lang
+
 [![crates.io](https://img.shields.io/crates/v/rocks-lang)](https://crates.io/crates/rocks-lang)
 [![docs.rs](https://img.shields.io/docsrs/rocks-lang)](https://docs.rs/rocks-lang/latest)
 [![dependencies](https://deps.rs/repo/github/boranseckin/rocks/status.svg)](https://deps.rs/repo/github/boranseckin/rocks)
 [![codecov](https://codecov.io/github/boranseckin/rocks/branch/main/graph/badge.svg?token=4wG6W8L1v3)](https://codecov.io/github/boranseckin/rocks)
-
-# rocks-lang
 
 Rocks is a programming language written in Rust. It is a dynamically typed language with
 lexical scoping and first-class functions. Rocks is a tree-walk interpreter with a hand-written
