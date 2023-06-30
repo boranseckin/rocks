@@ -1,0 +1,4 @@
+fun a() {
+  break; // expect: cannot break ouside of a loop
+}
+a();
