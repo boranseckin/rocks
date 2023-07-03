@@ -1,10 +1,9 @@
 use std::fmt::{Debug, Display};
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
-use crate::object::{Object, Callable};
+use crate::object::{Object, Callable, Shared};
 use crate::error::{RuntimeError, ReturnType};
 use crate::stmt::Stmt;
 use crate::token::Token;
@@ -18,13 +17,13 @@ pub struct Function {
     pub name: Token,
     params: Vec<Token>,
     body: Vec<Stmt>,
-    closure: Rc<RefCell<Environment>>,
+    closure: Shared<Environment>,
     is_initializer: bool,
 }
 
 impl Function {
     /// Creates a new function.
-    pub fn new(stmt: Stmt, closure: Rc<RefCell<Environment>>, is_initializer: bool) -> Self {
+    pub fn new(stmt: Stmt, closure: Shared<Environment>, is_initializer: bool) -> Self {
         if let Stmt::Function(data) = stmt {
             Function {
                 name: data.name,
@@ -48,7 +47,7 @@ impl Function {
             name: self.name.clone(),
             params: self.params.clone(),
             body: self.body.clone(),
-            closure: Rc::new(RefCell::new(environment)),
+            closure: environment.as_shared(),
             is_initializer: self.is_initializer,
         }
     }
@@ -61,9 +60,7 @@ impl Callable for Function {
     ///
     /// Note: Initializer methods will return the instance that they were called on.
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
-        let environment = Rc::new(RefCell::new(
-            Environment::new(Some(Rc::clone(&self.closure)))
-        ));
+        let environment = Environment::new(Some(Rc::clone(&self.closure))).as_shared();
 
         self.params.iter().zip(arguments.iter()).for_each(|(param, arg)| {
             environment.borrow_mut().define(&param.lexeme, arg.to_owned());

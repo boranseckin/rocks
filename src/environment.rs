@@ -1,9 +1,9 @@
 use std::fmt::Debug;
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::object::Object;
+use crate::object::{Object, Shared};
 use crate::token::Token;
 use crate::error::{RuntimeError, Error};
 
@@ -15,17 +15,21 @@ use crate::error::{RuntimeError, Error};
 pub struct Environment {
     /// Using an Rc and Refcell here allows us to have multiple mutable references
     /// to the same environment.
-    pub enclosing: Option<Rc<RefCell<Environment>>>,
+    pub enclosing: Option<Shared<Environment>>,
     variables: HashMap<String, Object>,
 }
 
 impl Environment {
     /// Creates a new environment with the given enclosing environment.
-    pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
+    pub fn new(enclosing: Option<Shared<Environment>>) -> Self {
         Environment {
             enclosing,
             variables: HashMap::new(),
         }
+    }
+
+    pub fn as_shared(self) -> Shared<Self> {
+        Rc::new(RefCell::new(self))
     }
 
     /// Defines a new variable in the environment with the given name and value.
@@ -34,7 +38,7 @@ impl Environment {
     }
 
     /// Accesses the ancestor environment at the given distance.
-    fn ancestor(&self, distance: usize) -> Rc<RefCell<Environment>> {
+    fn ancestor(&self, distance: usize) -> Shared<Environment> {
         let parent = self.enclosing.clone()
             .unwrap_or_else(|| panic!("enclosing environment to exist at depth {}", 1));
         let mut environment = Rc::clone(&parent);

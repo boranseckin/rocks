@@ -1,29 +1,28 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use crate::class::Class;
 use crate::environment::Environment;
 use crate::error::{self, Error, ReturnType, RuntimeError, ReturnError, BreakError};
 use crate::expr::{Expr, ExprVisitor};
 use crate::function::{NativeFunction, Function};
-use crate::object::{Object, Callable};
+use crate::object::{Object, Callable, Shared};
 use crate::stmt::{Stmt, StmtVisitor};
 use crate::token::{Type, Token};
 use crate::literal::Literal;
 
 pub struct Interpreter<'w> {
     // Interior mutability with multiple owners
-    environment: Rc<RefCell<Environment>>,
-    globals: Rc<RefCell<Environment>>,
+    environment: Shared<Environment>,
+    globals: Shared<Environment>,
     locals: HashMap<Token, usize>,
     writer: Box<dyn std::io::Write + 'w>,
 }
 
 impl<'w> Interpreter<'w> {
     pub fn new<W: std::io::Write>(writer: &'w mut W) -> Self {
-        let globals = Rc::new(RefCell::new(Environment::default()));
+        let globals = Environment::default().as_shared();
 
         NativeFunction::get_globals().iter().for_each(|native| {
             globals.borrow_mut().define(&native.name.lexeme, Object::from(native.clone()));
@@ -70,7 +69,7 @@ impl<'w> Interpreter<'w> {
     pub fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        environment: Rc<RefCell<Environment>>
+        environment: Shared<Environment>
     ) -> Result<(), ReturnType> {
         let previous = self.environment.clone();
         self.environment = environment;
@@ -447,7 +446,7 @@ impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
         let Stmt::Block(data) = stmt else { unreachable!() };
         self.execute_block(
             &data.statements,
-            Rc::new(RefCell::new(Environment::new(Some(Rc::clone(&self.environment)))))
+            Environment::new(Some(Rc::clone(&self.environment))).as_shared()
         )
     }
 
@@ -478,7 +477,7 @@ impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
         if let Some(ref superclass) = superclass {
             let mut environment = Environment::new(Some(Rc::clone(&self.environment)));
             environment.define("super", superclass.clone());
-            self.environment = Rc::new(RefCell::new(environment));
+            self.environment = environment.as_shared();
         }
 
         let mut methods: HashMap<String, Function> = HashMap::new();
@@ -502,7 +501,7 @@ impl<'w> StmtVisitor<Result<(), ReturnType>> for Interpreter<'w> {
             self.environment = enclosing;
         }
 
-        self.environment.borrow_mut().assign(&data.name, Object::from(Rc::new(RefCell::new(class))));
+        self.environment.borrow_mut().assign(&data.name, Object::from(class.as_shared()));
 
         Ok(())
     }

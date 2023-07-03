@@ -9,6 +9,8 @@ use crate::function::{Function, NativeFunction};
 use crate::literal::Literal;
 use crate::interpreter::Interpreter;
 
+pub type Shared<T> = Rc<RefCell<T>>;
+
 /// Represents an object that can be stored in a variable or returned from a function.
 /// This is an enum that wraps all the possible types of values in the language.
 #[derive(Debug, Clone)]
@@ -16,8 +18,8 @@ pub enum Object {
     Literal(Literal),
     Function(Function),
     NativeFunction(NativeFunction),
-    Class(Rc<RefCell<Class>>),
-    Instance(Rc<RefCell<Instance>>),
+    Class(Shared<Class>),
+    Instance(Shared<Instance>),
 }
 
 impl Object {
@@ -170,8 +172,8 @@ impl From<NativeFunction> for Object {
     }
 }
 
-impl From<Rc<RefCell<Class>>> for Object {
-    fn from(value: Rc<RefCell<Class>>) -> Self {
+impl From<Shared<Class>> for Object {
+    fn from(value: Shared<Class>) -> Self {
         Object::Class(value)
     }
 }
@@ -182,8 +184,8 @@ impl From<Instance> for Object {
     }
 }
 
-impl From<Rc<RefCell<Instance>>> for Object {
-    fn from(value: Rc<RefCell<Instance>>) -> Self {
+impl From<Shared<Instance>> for Object {
+    fn from(value: Shared<Instance>) -> Self {
         Object::Instance(value)
     }
 }

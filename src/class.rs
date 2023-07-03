@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::error::RuntimeError;
 use crate::function::Function;
-use crate::object::{Callable, Object};
+use crate::object::{Callable, Object, Shared};
 use crate::interpreter::Interpreter;
 use crate::token::Token;
 
@@ -37,6 +37,10 @@ impl Class {
     /// Creates a new class with the given name, superclass (if any), and methods.
     pub fn new(name: String, superclass: Option<Object>, methods: HashMap<String, Function>) -> Self {
         Class { name, superclass, methods }
+    }
+
+    pub fn as_shared(self) -> Shared<Self> {
+        Rc::new(RefCell::new(self))
     }
 
     /// Returns the method with the given name. If the method is not defined, it will return `None`.
@@ -80,7 +84,7 @@ impl Callable for Class {
     /// If the `init` method is not defined, it will inherit the `init` method of its superclass
     /// (if any).
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, RuntimeError> {
-        let instance = Object::from(Instance::from(&Rc::new(RefCell::new(self.clone()))));
+        let instance = Object::from(Instance::from(&self.clone().as_shared()));
 
         if let Some(mut initializer) = self.get_method("init") {
             initializer.bind(instance.clone()).call(interpreter, arguments)?;
@@ -99,7 +103,7 @@ impl Callable for Class {
 /// class. Methods can be called by using the `()` operator after the method name.
 #[derive(Debug, Clone)]
 pub struct Instance {
-    class: Rc<RefCell<Class>>,
+    class: Shared<Class>,
     fields: HashMap<String, Object>,
 }
 
@@ -126,8 +130,8 @@ impl Instance {
     }
 }
 
-impl From<&Rc<RefCell<Class>>> for Instance {
-    fn from(value: &Rc<RefCell<Class>>) -> Self {
+impl From<&Shared<Class>> for Instance {
+    fn from(value: &Shared<Class>) -> Self {
         Instance { class: Rc::clone(value), fields: HashMap::new() }
     }
 }
